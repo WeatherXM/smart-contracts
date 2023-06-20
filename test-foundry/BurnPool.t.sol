@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+pragma solidity 0.8.20;
 
 import { Vm } from "forge-std/Vm.sol";
 import { DSTest } from "ds-test/test.sol";
@@ -13,7 +13,6 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { IWeatherXM } from "src/interfaces/IWeatherXM.sol";
 import { IBurnPool } from "src/interfaces/IBurnPool.sol";
 import { IWeatherXM } from "src/interfaces/IWeatherXM.sol";
-import { MockV3Aggregator } from "src/mocks/oracle/MockV3Aggregator.sol";
 import { MintableERC20 } from "src/mocks/token/MintableERC20.sol";
 
 contract BurnPoolTest is Test {
@@ -31,7 +30,6 @@ contract BurnPoolTest is Test {
   uint256 public initialAmount = 18000000;
   uint8 public constant DECIMALS = 18;
   int256 public constant INITIAL_ANSWER = 1 * 10 ** 18;
-  MockV3Aggregator public mockV3Aggregator;
   string IPFS_CID = "Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu";
   bytes32 public constant MANUFACTURER_ROLE = keccak256("MANUFACTURER_ROLE");
   bytes32 public constant PROVISIONER_ROLE = keccak256("PROVISIONER_ROLE");
@@ -42,7 +40,6 @@ contract BurnPoolTest is Test {
     weatherStationXM = IWeatherStationXM(weatherStationImplementation);
     tokenImplementation = address(new MintableERC20("WeatherXM", "WXM"));
     testToken = MintableERC20(tokenImplementation);
-    mockV3Aggregator = new MockV3Aggregator(DECIMALS, INITIAL_ANSWER);
     owner = address(0x0);
     vm.label(owner, "Owner");
     alice = address(0x1);

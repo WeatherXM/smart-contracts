@@ -42,7 +42,7 @@ const hardhatConfig: HardhatUserConfig = {
     // }
   },
   solidity: {
-    compilers: [{ ...compilerConfig('0.8.18') }]
+    compilers: [{ ...compilerConfig('0.8.20') }]
   },
   paths: {
     tests: './test',

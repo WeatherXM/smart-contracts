@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+pragma solidity 0.8.20;
 
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -113,7 +113,7 @@ contract WeatherStationXM is
 
   function supportsInterface(
     bytes4 interfaceId
-  ) public view override(ERC721, ERC721Enumerable, IERC165, AccessControl) returns (bool) {
+  ) public view override(ERC721, ERC721URIStorage, ERC721Enumerable, IERC165, AccessControl) returns (bool) {
     return super.supportsInterface(interfaceId);
   }
 }

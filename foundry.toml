@@ -2,7 +2,7 @@
 src = "src"
 out = 'out'
 test = 'test-foundry'
-solc_version = '0.8.18'
+solc_version = '0.8.20'
 auto_detect_solc = false
 optimizer_runs = 10_000
 libs = [
