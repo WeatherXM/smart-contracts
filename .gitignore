@@ -1,0 +1,82 @@
+### Solidity ###
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+### SolidityTruffle ###
+# depedencies
+node_modules
+
+# production
+build
+
+# misc
+.DS_Store
+npm-debug.log
+.truffle-solidity-loader
+.vagrant/**
+blockchain/geth/**
+blockchain/keystore/**
+blockchain/history
+
+#truffle
+yarn.lock
+configs
+migrations/config.json
+.openzeppelin
+
+#foundry
+out
+**/cache
+forge-cache
+
+#hardhat
+types
+
+#mythril
+graph.html
+artifacts/
+cache_hardhat/
+soljson-*.*.*.js
+
+# python virtual env 
+.venv/
+
+# solcover
+coverage/
+.coverage_cache/
+.coverage_artifacts/
+.coverage_contracts/
+coverage.json
+cache
+lcov.info
+
+#security
+flat
+security/flat
+security/slither/slither-report
+security/mythril/mythril-report
+
+#slither
+output.json
+
+#test data
+test-foundry/scripts/data
+
+#scripts
+scripts/config.json
+
+#gas-reporter
+gas-report.txt

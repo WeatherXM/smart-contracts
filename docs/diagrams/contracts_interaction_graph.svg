@@ -1,0 +1,247 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="379pt" height="884pt" viewBox="0.00 0.00 379.39 884.00">
+<g id="graph0" class="graph" transform="translate(4,880) scale(1)" data-name="G">
+
+<polygon fill="#2e3e56" stroke="none" points="-4,4 -4,-880 375.39,-880 375.39,4 -4,4" style=""/>
+<g id="clust1" class="cluster" data-name="cluster_01">
+
+<polygon fill="#2e3e56" stroke="black" points="8,-739 8,-868 311.7,-868 311.7,-739 8,-739" style=""/>
+<text text-anchor="middle" x="159.85" y="-851.4" font-family="Times,serif" font-size="14.00" style="">Legend</text>
+</g>
+<!-- BurnPool -->
+<g id="node1" class="node" pointer-events="visible" data-name="BurnPool">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="81" cy="-405" rx="48.12" ry="18" style=""/>
+<text text-anchor="middle" x="81" y="-400.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">BurnPool</text>
+</g>
+<!-- BurnPool&#45;&gt;BurnPool -->
+<g id="edge1" class="edge" data-name="BurnPool-&gt;BurnPool">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M48.64,-419.42C37.34,-430.17 48.13,-441 81,-441 100.52,-441 112.25,-437.18 116.19,-431.83" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="119.67,-431.34 114.03,-422.37 112.85,-432.9 119.67,-431.34" style=""/>
+</g>
+<!-- IWeatherXM -->
+<g id="node4" class="node" pointer-events="visible" data-name="IWeatherXM">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="276.7" cy="-324" rx="62.53" ry="18" style=""/>
+<text text-anchor="middle" x="276.7" y="-319.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IWeatherXM</text>
+</g>
+<!-- BurnPool&#45;&gt;IWeatherXM -->
+<g id="edge3" class="edge" data-name="BurnPool-&gt;IWeatherXM">
+
+<path fill="none" stroke="white" stroke-width="2" d="M107.98,-388.96C127.74,-377.27 155.88,-361.67 182,-351 192.36,-346.77 203.62,-342.92 214.62,-339.54" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="215.37,-342.97 223.97,-336.79 213.39,-336.26 215.37,-342.97" style=""/>
+</g>
+<!-- IBurnPool -->
+<g id="node12" class="node" pointer-events="visible" data-name="IBurnPool">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="276.7" cy="-486" rx="51.05" ry="18" style=""/>
+<text text-anchor="middle" x="276.7" y="-481.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IBurnPool</text>
+</g>
+<!-- BurnPool&#45;&gt;IBurnPool -->
+<g id="edge5" class="edge" data-name="BurnPool-&gt;IBurnPool">
+
+<path fill="none" stroke="white" stroke-width="2" d="M107.98,-421.04C127.74,-432.73 155.88,-448.33 182,-459 194.11,-463.95 207.44,-468.37 220.15,-472.13" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="219.11,-475.47 229.68,-474.83 221.02,-468.73 219.11,-475.47" style=""/>
+</g>
+<!-- IWeatherStationXM -->
+<g id="node13" class="node" pointer-events="visible" data-name="IWeatherStationXM">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="276.7" cy="-432" rx="89.75" ry="18" style=""/>
+<text text-anchor="middle" x="276.7" y="-427.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IWeatherStationXM</text>
+</g>
+<!-- BurnPool&#45;&gt;IWeatherStationXM -->
+<g id="edge4" class="edge" data-name="BurnPool-&gt;IWeatherStationXM">
+
+<path fill="none" stroke="white" stroke-width="2" d="M127.41,-411.33C145.38,-413.83 166.67,-416.8 187.43,-419.7" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="186.87,-423.15 197.25,-421.07 187.83,-416.22 186.87,-423.15" style=""/>
+</g>
+<!-- IPriceFeedConsumer -->
+<g id="node14" class="node" pointer-events="visible" data-name="IPriceFeedConsumer">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="276.7" cy="-378" rx="92.63" ry="18" style=""/>
+<text text-anchor="middle" x="276.7" y="-373.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IPriceFeedConsumer</text>
+</g>
+<!-- BurnPool&#45;&gt;IPriceFeedConsumer -->
+<g id="edge2" class="edge" data-name="BurnPool-&gt;IPriceFeedConsumer">
+
+<path fill="none" stroke="white" stroke-width="2" d="M127.41,-398.67C144.83,-396.24 165.38,-393.38 185.53,-390.57" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="185.93,-394.05 195.35,-389.2 184.96,-387.11 185.93,-394.05" style=""/>
+</g>
+<!-- RewardPool -->
+<g id="node2" class="node" pointer-events="visible" data-name="RewardPool">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="81" cy="-216" rx="58.56" ry="18" style=""/>
+<text text-anchor="middle" x="81" y="-211.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">RewardPool</text>
+</g>
+<!-- RewardPool&#45;&gt;RewardPool -->
+<g id="edge6" class="edge" data-name="RewardPool-&gt;RewardPool">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M47.21,-231.92C38.39,-242.15 49.66,-252 81,-252 98.14,-252 109.28,-249.05 114.41,-244.71" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="117.9,-245.04 114.7,-234.94 110.9,-244.83 117.9,-245.04" style=""/>
+</g>
+<!-- WeatherXMData -->
+<g id="node3" class="node" pointer-events="visible" data-name="WeatherXMData">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="276.7" cy="-90" rx="77.55" ry="18" style=""/>
+<text text-anchor="middle" x="276.7" y="-85.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">WeatherXMData</text>
+</g>
+<!-- RewardPool&#45;&gt;WeatherXMData -->
+<g id="edge8" class="edge" data-name="RewardPool-&gt;WeatherXMData">
+
+<path fill="none" stroke="white" stroke-width="2" d="M101.63,-197.78C121.07,-180.31 152.17,-153.88 182,-135 195.22,-126.63 210.24,-118.77 224.32,-112.03" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="225.53,-115.32 233.12,-107.93 222.57,-108.98 225.53,-115.32" style=""/>
+</g>
+<!-- RewardPool&#45;&gt;IWeatherXM -->
+<g id="edge7" class="edge" data-name="RewardPool-&gt;IWeatherXM">
+
+<path fill="none" stroke="white" stroke-width="2" d="M99.92,-234.31C118.78,-252.62 150.11,-280.37 182,-297 191.28,-301.84 201.55,-305.92 211.78,-309.32" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="210.7,-312.65 221.29,-312.25 212.76,-305.96 210.7,-312.65" style=""/>
+</g>
+<!-- bytes -->
+<g id="node15" class="node" pointer-events="visible" data-name="bytes">
+
+<ellipse fill="none" stroke="#e8726d" stroke-width="3" stroke-dasharray="5,2" cx="276.7" cy="-270" rx="31.34" ry="18" style=""/>
+<text text-anchor="middle" x="276.7" y="-265.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">bytes</text>
+</g>
+<!-- RewardPool&#45;&gt;bytes -->
+<g id="edge9" class="edge" data-name="RewardPool-&gt;bytes">
+
+<path fill="none" stroke="white" stroke-width="2" d="M126.92,-228.52C159.44,-237.59 203.03,-249.74 234.62,-258.55" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="233.44,-261.85 244.02,-261.17 235.32,-255.11 233.44,-261.85" style=""/>
+</g>
+<!-- MerkleProof -->
+<g id="node16" class="node" pointer-events="visible" data-name="MerkleProof">
+
+<ellipse fill="none" stroke="#e8726d" stroke-width="3" stroke-dasharray="5,2" cx="276.7" cy="-216" rx="60.26" ry="18" style=""/>
+<text text-anchor="middle" x="276.7" y="-211.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">MerkleProof</text>
+</g>
+<!-- RewardPool&#45;&gt;MerkleProof -->
+<g id="edge10" class="edge" data-name="RewardPool-&gt;MerkleProof">
+
+<path fill="none" stroke="white" stroke-width="2" d="M140.9,-216C160.26,-216 182.02,-216 202.31,-216" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="202.04,-219.5 212.04,-216 202.04,-212.5 202.04,-219.5" style=""/>
+</g>
+<!-- PausableUpgradeable -->
+<g id="node17" class="node" pointer-events="visible" data-name="PausableUpgradeable">
+
+<ellipse fill="none" stroke="#e8726d" stroke-width="3" stroke-dasharray="5,2" cx="276.7" cy="-162" rx="94.89" ry="18" style=""/>
+<text text-anchor="middle" x="276.7" y="-157.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">PausableUpgradeable</text>
+</g>
+<!-- RewardPool&#45;&gt;PausableUpgradeable -->
+<g id="edge11" class="edge" data-name="RewardPool-&gt;PausableUpgradeable">
+
+<path fill="none" stroke="white" stroke-width="2" d="M126.92,-203.48C150.75,-196.83 180.54,-188.53 207.19,-181.1" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="207.96,-184.52 216.66,-178.46 206.08,-177.77 207.96,-184.52" style=""/>
+</g>
+<!-- WeatherXMData&#45;&gt;WeatherXMData -->
+<g id="edge12" class="edge" data-name="WeatherXMData-&gt;WeatherXMData">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M241.76,-107.41C235.24,-117.09 246.88,-126 276.7,-126 292.07,-126 302.61,-123.63 308.32,-120.01" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="311.71,-120.9 310.86,-110.34 304.94,-119.12 311.71,-120.9" style=""/>
+</g>
+<!-- IRewardPool -->
+<g id="node5" class="node" pointer-events="visible" data-name="IRewardPool">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="81" cy="-477" rx="61.99" ry="18" style=""/>
+<text text-anchor="middle" x="81" y="-472.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IRewardPool</text>
+</g>
+<!-- WeatherXM -->
+<g id="node6" class="node" pointer-events="visible" data-name="WeatherXM">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="81" cy="-54" rx="59.1" ry="18" style=""/>
+<text text-anchor="middle" x="81" y="-49.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">WeatherXM</text>
+</g>
+<!-- WeatherXM&#45;&gt;WeatherXMData -->
+<g id="edge15" class="edge" data-name="WeatherXM-&gt;WeatherXMData">
+
+<path fill="none" stroke="white" stroke-width="2" d="M133.65,-63.6C154.26,-67.43 178.4,-71.92 200.86,-76.09" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="200.05,-79.5 210.52,-77.89 201.33,-72.62 200.05,-79.5" style=""/>
+</g>
+<!-- WeatherXM&#45;&gt;WeatherXM -->
+<g id="edge13" class="edge" data-name="WeatherXM-&gt;WeatherXM">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M47.21,-69.92C38.39,-80.15 49.66,-90 81,-90 98.14,-90 109.28,-87.05 114.41,-82.71" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="117.9,-83.04 114.7,-72.94 110.9,-82.83 117.9,-83.04" style=""/>
+</g>
+<!-- Ownable -->
+<g id="node11" class="node" pointer-events="visible" data-name="Ownable">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="276.7" cy="-18" rx="45.79" ry="18" style=""/>
+<text text-anchor="middle" x="276.7" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">Ownable</text>
+</g>
+<!-- WeatherXM&#45;&gt;Ownable -->
+<g id="edge14" class="edge" data-name="WeatherXM-&gt;Ownable">
+
+<path fill="none" stroke="white" stroke-width="2" d="M133.65,-44.4C160.64,-39.38 193.68,-33.24 221.09,-28.15" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="221.48,-31.64 230.67,-26.37 220.2,-24.75 221.48,-31.64" style=""/>
+</g>
+<!-- ERC20 -->
+<g id="node7" class="node" pointer-events="visible" data-name="ERC20">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="81" cy="-531" rx="39.45" ry="18" style=""/>
+<text text-anchor="middle" x="81" y="-526.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">ERC20</text>
+</g>
+<!-- ERC20&#45;&gt;ERC20 -->
+<g id="edge16" class="edge" data-name="ERC20-&gt;ERC20">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M50.36,-543.92C36.39,-555.13 46.6,-567 81,-567 103.57,-567 115.73,-561.89 117.47,-555.21" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="120.73,-553.88 113.03,-546.61 114.51,-557.1 120.73,-553.88" style=""/>
+</g>
+<!-- Context -->
+<g id="node8" class="node" pointer-events="visible" data-name="Context">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="81" cy="-603" rx="41.73" ry="18" style=""/>
+<text text-anchor="middle" x="81" y="-598.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">Context</text>
+</g>
+<!-- IERC20 -->
+<g id="node9" class="node" pointer-events="visible" data-name="IERC20">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="81" cy="-657" rx="42.88" ry="18" style=""/>
+<text text-anchor="middle" x="81" y="-652.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IERC20</text>
+</g>
+<!-- SafeMath -->
+<g id="node10" class="node" pointer-events="visible" data-name="SafeMath">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="81" cy="-711" rx="48.66" ry="18" style=""/>
+<text text-anchor="middle" x="81" y="-706.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">SafeMath</text>
+</g>
+<!-- Ownable&#45;&gt;Ownable -->
+<g id="edge17" class="edge" data-name="Ownable-&gt;Ownable">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M244.74,-32.04C232.79,-42.91 243.44,-54 276.7,-54 296.96,-54 308.83,-49.88 312.31,-44.21" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="315.75,-43.51 309.52,-34.94 309.05,-45.52 315.75,-43.51" style=""/>
+</g>
+<!-- key -->
+<g id="node18" class="node" pointer-events="visible" data-name="key">
+
+<polygon fill="#edad56" stroke="none" stroke-width="3" points="146,-835 16,-835 16,-747 146,-747 146,-835" style=""/>
+<text text-anchor="start" x="65.64" y="-816.4" font-family="Times,serif" font-size="14.00" style="">Internal Call</text>
+<text text-anchor="start" x="61.75" y="-796.4" font-family="Times,serif" font-size="14.00" style="">External Call</text>
+<text text-anchor="start" x="39.2" y="-776.4" font-family="Times,serif" font-size="14.00" style="">Defined Contract</text>
+<text text-anchor="start" x="25.6" y="-756.4" font-family="Times,serif" font-size="14.00" style="">Undefined Contract</text>
+</g>
+<!-- key2 -->
+<g id="node19" class="node" pointer-events="visible" data-name="key2">
+
+<polygon fill="#edad56" stroke="none" stroke-width="3" points="303.7,-835 249.7,-835 249.7,-747 303.7,-747 303.7,-835" style=""/>
+<text text-anchor="start" x="266.7" y="-816.4" font-family="Times,serif" font-size="14.00" style="">   </text>
+<text text-anchor="start" x="266.7" y="-796.4" font-family="Times,serif" font-size="14.00" style="">   </text>
+<polygon fill="#445773" stroke="none" points="264.7,-771 264.7,-791 289.7,-791 289.7,-771 264.7,-771" style=""/>
+<text text-anchor="start" x="266.7" y="-776.4" font-family="Times,serif" font-size="14.00" style="">   </text>
+<polygon fill="none" stroke="#e8726d" points="266.7,-753 266.7,-769 287.7,-769 287.7,-753 266.7,-753" style=""/>
+</g>
+<!-- key&#45;&gt;key2 -->
+<g id="edge18" class="edge" data-name="key-&gt;key2">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M139,-821C189.87,-821 205.72,-821 250.85,-821" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="250.67,-824.5 260.67,-821 250.67,-817.5 250.67,-824.5" style=""/>
+</g>
+<!-- key&#45;&gt;key2 -->
+<g id="edge19" class="edge" data-name="key-&gt;key2">
+
+<path fill="none" stroke="white" stroke-width="2" d="M139,-801C189.87,-801 205.72,-801 250.85,-801" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="250.67,-804.5 260.67,-801 250.67,-797.5 250.67,-804.5" style=""/>
+</g>
+</g>
+</svg>

@@ -1,0 +1,9 @@
+lib
+out
+cache
+cache_hardhat
+coverage
+types
+frontend
+scripts/test.ts
+scripts/proofs.ts
