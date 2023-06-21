@@ -1,0 +1,25 @@
+{
+	"extends": "solhint:default",
+	"plugins": [],
+	"rules": {
+		"code-complexity": ["error", 8],
+		"compiler-version": ["error", ">=0.8.18"],
+		"func-visibility": ["error", { "ignoreConstructors": true }],
+		"max-line-length": ["error", 160],
+		"not-rely-on-time": "off",
+		"reason-string": ["warn", { "maxLength": 120 }],
+		"avoid-call-value": "off",
+		"const-name-snakecase": "off",
+		"func-order": "off",
+		"func-param-name-mixedcase": "off",
+		"imports-on-top": "off",
+		"mark-callable-contracts": "off",
+		"no-empty-blocks": "off",
+		"no-inline-assembly": "off",
+		"no-unused-vars": "warn",
+		"quotes": ["error", "double"],
+		"var-name-mixedcase": "off",
+		"visibility-modifier-order": "off",
+		"contract-name-camelcase": "off"
+	}
+}
