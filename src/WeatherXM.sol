@@ -6,26 +6,18 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ERC20Capped } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { IWeatherXMMintingManager } from "./interfaces/IWeatherXMMintingManager.sol";
 
 contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
   /* ========== LIBRARIES ========== */
   using SafeMath for uint256;
 
-  /* ========== STATE VARIABLES ========== */
-  IWeatherXMMintingManager public immutable mintingManager;
-
   /* ========== CONSTANTS ========== */
-  uint256 public initialAmount = 18000000;
-  uint256 public maxSupply = 1e8 * 10 ** 18;
+  uint256 public constant maxSupply = 1e8 * 10 ** 18;
 
   /* ========== CUSTOM ERRORS ========== */
-  error TotalSupplyShouldNotSurpass100M();
   error TokenTransferWhilePaused();
-  error MintingRateLimitingInEffect();
   error TargetAddressIsZero();
   error TargetAddressIsContractAddress();
-  error OnlyMintingManager();
 
   modifier validDestination(address _address) {
     if (_address == address(0x0)) {
@@ -37,24 +29,11 @@ contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
     _;
   }
 
-  modifier onlyMintingManager() {
-    if (_msgSender() != address(mintingManager)) {
-      revert OnlyMintingManager();
-    }
-    _;
-  }
-
   constructor(
     string memory _name,
-    string memory _symbol,
-    address _mintingManager
+    string memory _symbol
   ) ERC20(_name, _symbol) ERC20Capped(maxSupply) {
-    _mint(_msgSender(), initialAmount * 10 ** uint256(decimals()));
-    mintingManager = IWeatherXMMintingManager(_mintingManager);
-  }
-
-  function mint(address mintTarget, uint256 mintAmount) public whenNotPaused onlyMintingManager {
-    return _mint(mintTarget, mintAmount);
+    _mint(_msgSender(), maxSupply);
   }
 
   function burn(uint256 amount) external {

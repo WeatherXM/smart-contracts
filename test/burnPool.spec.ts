@@ -7,11 +7,8 @@ describe('BurnPool', () => {
   async function deployInitialStateFixture() {
     const [owner, addr1, addr2, addr3, addr4] = await ethers.getSigners();
     const Token = await ethers.getContractFactory('WeatherXM');
-    const WeatherXMMintingManager = await ethers.getContractFactory('WeatherXMMintingManager');
-    const mintingManager = await WeatherXMMintingManager.deploy()
-    const token = await Token.deploy('WeatherXM', 'WXM', mintingManager.address);
+    const token = await Token.deploy('WeatherXM', 'WXM');
     await token.deployed();
-    await mintingManager.setToken(token.address);
     const WeatherStationXM = await ethers.getContractFactory(
       'WeatherStationXM'
     );
@@ -37,14 +34,13 @@ describe('BurnPool', () => {
     await burnPool.deployed();
     await time.increase(90000);
     // Fixtures can return anything you consider useful for your tests
-    return { burnPool, burnAmount, weatherStationXM, mintingManager, token, owner, addr1, addr2, addr3, addr4 };
+    return { burnPool, burnAmount, weatherStationXM, token, owner, addr1, addr2, addr3, addr4 };
   }
 
   describe('burnForService', () => {
     it('burn for service (expected behavior)', async () => {
-      const { burnPool, burnAmount, token, addr2, mintingManager, owner } = await loadFixture(deployInitialStateFixture);
-      await mintingManager.connect(owner).setMintTarget(await addr2.getAddress());
-      await mintingManager.mintDaily();
+      const { burnPool, burnAmount, token, addr2 } = await loadFixture(deployInitialStateFixture);
+      await token.transfer(addr2.address, burnAmount);
       await token.connect(addr2).approve(burnPool.address, burnAmount);
       await expect(
         burnPool
@@ -66,7 +62,7 @@ describe('BurnPool', () => {
   });
   describe('burnOnboardingFee', () => {
     it('burnOnboardingFee', async () => {
-      const { burnPool, owner, weatherStationXM, token, addr3, mintingManager } = await loadFixture(deployInitialStateFixture);
+      const { burnPool, owner, weatherStationXM, token, addr3 } = await loadFixture(deployInitialStateFixture);
       const manufacturer = await addr3.getAddress();
       await time.increase(90000);
       await burnPool
@@ -83,8 +79,7 @@ describe('BurnPool', () => {
         );
       // the manufacturer is set as target for mint instead of the rewardPool
       // for the purpose of funding this account in order to complete the tests
-      await mintingManager.connect(owner).setMintTarget(manufacturer);
-      await mintingManager.mintDaily();
+      await token.transfer(addr3.address, ethers.utils.parseEther(String(100.0)));
       await token
         .connect(addr3)
         .approve(burnPool.address, ethers.utils.parseEther(String(100.0)));
@@ -101,12 +96,11 @@ describe('BurnPool', () => {
 
   describe('testing pausability', () => {
     it('should pause burnPool', async () => {
-      const { burnPool, burnAmount, owner, token, addr2, mintingManager } = await loadFixture(deployInitialStateFixture);
+      const { burnPool, burnAmount, owner, token, addr2 } = await loadFixture(deployInitialStateFixture);
       await time.increase(90000);
-      await mintingManager.connect(owner).setMintTarget(await addr2.getAddress());
-      await mintingManager.mintDaily();
       await token.connect(addr2).approve(burnPool.address, burnAmount);
       await time.increase(90000);
+      await token.transfer(addr2.address, burnAmount);
       if (await burnPool.connect(owner).pause()) {
         await expect(
           burnPool
@@ -116,12 +110,11 @@ describe('BurnPool', () => {
       }
     });
     it('should unpause burnPool', async () => {
-      const { burnPool, burnAmount, owner, token, addr2, mintingManager } = await loadFixture(deployInitialStateFixture);
+      const { burnPool, burnAmount, owner, token, addr2 } = await loadFixture(deployInitialStateFixture);
       await time.increase(90000);
-      await mintingManager.connect(owner).setMintTarget(await addr2.getAddress());
-      await mintingManager.mintDaily();
       await token.connect(addr2).approve(burnPool.address, burnAmount);
       await time.increase(90000);
+      await token.transfer(addr2.address, burnAmount);
       await burnPool.connect(owner).pause();
       if (await burnPool.connect(owner).unpause()) {
         await expect(
