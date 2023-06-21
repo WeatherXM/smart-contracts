@@ -1,0 +1,62 @@
+on: [push]
+
+name: CI
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: npm i
+      - name: Linting
+        run: npm run lint
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16.x"
+          cache: "npm"
+      - name: install dependencies
+        run: npm install
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Compile contracts
+        run: forge build
+        env:
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+          FORKING: ${{ secrets.FORKING }}
+          REPORT_GAS: ${{ secrets.REPORT_GAS }}
+          COINMARKETCAP_API: ${{ secrets.COINMARKETCAP_API }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16.x"
+          cache: "npm"
+      - name: install dependencies
+        run: npm install
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Run unit tests
+        run: npm run test:all
+        env:
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+          FORKING: ${{ secrets.FORKING }}
+          REPORT_GAS: ${{ secrets.REPORT_GAS }}
+          COINMARKETCAP_API: ${{ secrets.COINMARKETCAP_API }}
+
