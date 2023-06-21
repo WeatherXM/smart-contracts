@@ -4,9 +4,13 @@ pragma solidity 0.8.20;
 import {Test} from "forge-std/Test.sol";
 import {WeatherXM} from "src/WeatherXM.sol";
 import {IWeatherXM} from "src/interfaces/IWeatherXM.sol";
+import {WeatherXMMintingManager} from "src/WeatherXMMintingManager.sol";
+import {IWeatherXMMintingManager} from "src/interfaces/IWeatherXMMintingManager.sol";
 
 contract WeatherXMTest is Test {
     address internal tokenImplementation;
+    address internal mintingManagerImplementation;
+    WeatherXMMintingManager public mintingManager;
     IWeatherXM public weatherXM;
     address internal alice;
     address internal bob;
@@ -16,8 +20,11 @@ contract WeatherXMTest is Test {
 
     function setUp() public {
         vm.startPrank(admin);
-        tokenImplementation = address(new WeatherXM("WeatherXM", "WXM", admin));
+        mintingManager = new WeatherXMMintingManager();
+        tokenImplementation = address(new WeatherXM("WeatherXM", "WXM", address(mintingManager)));
+        mintingManager.setToken(tokenImplementation);
         weatherXM = IWeatherXM(tokenImplementation);
+
         // tokenImplementation = address(new WeatherXMv2());
         // proxy = new ERC1967Proxy(
         //     tokenImplementation,
@@ -55,25 +62,13 @@ contract WeatherXMTest is Test {
         assertEq(weatherXM.balanceOf(admin), initialAmount * 10 ** uint256(weatherXM.decimals()));
     }
 
-    function testMint() public {
-        // grant alice with minter role
+    function testMintDailyFailsWhenInvokedTwice() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        // mint into bob address, 8200 * 10 ** 18 WXM
-        weatherXM.mint(bob, 8200 * 10 ** 18);
-        vm.stopPrank();
-        vm.startPrank(alice);
-        vm.deal(alice, 1 ether);
-        assertEq(
-            weatherXM.totalSupply(),
-            initialAmount * 10 ** 18 + 8200 * 10 ** 18
-        );
-        vm.stopPrank();
-        vm.startPrank(admin);
-        weatherXM.mint(bob, 14246 * 10 ** 18);
-        vm.stopPrank();
-        vm.startPrank(alice);
-        assertEq(weatherXM.balanceOf(bob), 8200 * 10 ** 18 + 14246 * 10 ** 18);
+        mintingManager.setMintTarget(bob);
+        mintingManager.mintDaily();
+        vm.expectRevert(bytes4(keccak256("MintingRateLimitingInEffect()")));
+        mintingManager.mintDaily();
         vm.stopPrank();
     }
 
@@ -84,27 +79,19 @@ contract WeatherXMTest is Test {
         vm.stopPrank();
     }
 
-    function testRevertTotalSupplyOver100M() public {
+    function testRevertWhenMintingIsNotInitiatedByMintingManager() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        // Mint exactly 100M tokens
-        weatherXM.mint(bob, 1e8 * 10 ** 18 - initialAmount * 10 ** 18);
-        vm.stopPrank();
-        vm.startPrank(alice);
-        vm.deal(alice, 1 ether);
-        assertEq(weatherXM.totalSupply(), 1e8 * 10 ** 18);
-        
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("OnlyMintingManager()")));
         weatherXM.mint(bob, 1);
-        
-        assertEq(weatherXM.totalSupply(), 1e8 * 10 ** 18);
         vm.stopPrank();
     }
 
     function testBurnFrom() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        weatherXM.mint(bob, 8200 * 10 ** 18 + 14246 * 10 ** 18);
+        mintingManager.setMintTarget(bob);
+        mintingManager.mintDaily();
         vm.stopPrank();
         vm.startPrank(bob);
         vm.deal(bob, 1 ether);
@@ -123,7 +110,8 @@ contract WeatherXMTest is Test {
     function testTransferAllTokens() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        weatherXM.mint(alice, 10 * 10 ** 18);
+        mintingManager.setMintTarget(alice);
+        mintingManager.mintDaily();
         vm.stopPrank();
         vm.startPrank(alice);
         vm.deal(alice, 1 ether);
@@ -135,7 +123,8 @@ contract WeatherXMTest is Test {
     function testTransferOneToken() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        weatherXM.mint(alice, 1 * 10 ** 18);
+        mintingManager.setMintTarget(alice);
+        mintingManager.mintDaily();
         vm.stopPrank();
         vm.startPrank(alice);
         vm.deal(alice, 1 ether);
@@ -147,7 +136,8 @@ contract WeatherXMTest is Test {
     function testCannotTransferMoreThanAvailable() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        weatherXM.mint(alice, 8200 * 10 ** 18 + 14249 * 10 ** 18);
+        mintingManager.setMintTarget(alice);
+        mintingManager.mintDaily();
         vm.stopPrank();
         itRevertsTransfer({
             from: alice,
@@ -160,7 +150,8 @@ contract WeatherXMTest is Test {
     function testCannotTransferToZero() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        weatherXM.mint(alice, 8200 * 10 ** 18 + 14246 * 10 ** 18);
+        mintingManager.setMintTarget(alice);
+        mintingManager.mintDaily();
         vm.stopPrank();
         itRevertsTransfer({
             from: alice,
@@ -173,8 +164,9 @@ contract WeatherXMTest is Test {
     function testPausedMint() public {
         vm.startPrank(admin);
         weatherXM.pause();
+        mintingManager.setMintTarget(bob);
         vm.expectRevert(bytes("Pausable: paused"));
-        weatherXM.mint(bob, 1);
+        mintingManager.mintDaily();        
         vm.stopPrank();
     }
 
@@ -183,7 +175,7 @@ contract WeatherXMTest is Test {
         vm.deal(admin, 1 ether);
         weatherXM.pause();
         vm.stopPrank();
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("TokenTransferWhilePaused()")));
         transferToken(alice, bob, 35);
     }
 }
