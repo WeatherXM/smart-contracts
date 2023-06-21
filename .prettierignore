@@ -1,0 +1,12 @@
+build
+lib
+node_modules
+cache
+configs
+.husky
+.openzeppelin
+out
+coverage
+artifacts
+typechain-types
+cache_hardhat
