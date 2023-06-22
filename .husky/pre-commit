@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npm run pretty-quick --staged && ./hooks/linting.sh && npm run test:all
+npm run pretty-quick --staged && npm run lint && npm run test:all
