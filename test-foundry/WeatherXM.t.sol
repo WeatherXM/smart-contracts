@@ -12,18 +12,12 @@ contract WeatherXMTest is Test {
     address internal bob;
     address internal admin = address(0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
     uint256 internal maxTransferAmount = 1e7 * 10 ** 18;
-    uint256 public initialAmount = 18000000;
+    uint256 public maxSupply = 1e8 * 10 ** 18;
 
     function setUp() public {
         vm.startPrank(admin);
-        tokenImplementation = address(new WeatherXM("WeatherXM", "WXM", admin));
+        tokenImplementation = address(new WeatherXM("WeatherXM", "WXM"));
         weatherXM = IWeatherXM(tokenImplementation);
-        // tokenImplementation = address(new WeatherXMv2());
-        // proxy = new ERC1967Proxy(
-        //     tokenImplementation,
-        //     abi.encodeWithSelector(IWeatherXM(tokenImplementation).initialize.selector, address(cycle))
-        // );
-        // emit ContractDeployed(address(proxy));
         alice = address(0x1);
         vm.label(alice, "Alice");
         bob = address(0x2);
@@ -51,79 +45,43 @@ contract WeatherXMTest is Test {
     }
 
     function testPreMintedAmountIsCorrect() public {
-        assertEq(weatherXM.totalSupply(), initialAmount * 10 ** uint256(weatherXM.decimals()));
-        assertEq(weatherXM.balanceOf(admin), initialAmount * 10 ** uint256(weatherXM.decimals()));
+        assertEq(weatherXM.totalSupply(), maxSupply);
+        assertEq(weatherXM.balanceOf(admin), maxSupply);
     }
 
-    function testMint() public {
-        // grant alice with minter role
-        vm.startPrank(admin);
-        vm.deal(admin, 1 ether);
-        // mint into bob address, 8200 * 10 ** 18 WXM
-        weatherXM.mint(bob, 8200 * 10 ** 18);
-        vm.stopPrank();
-        vm.startPrank(alice);
-        vm.deal(alice, 1 ether);
+    function testMintEntireBalanceToDeployer() public {
         assertEq(
             weatherXM.totalSupply(),
-            initialAmount * 10 ** 18 + 8200 * 10 ** 18
+            maxSupply
         );
-        vm.stopPrank();
-        vm.startPrank(admin);
-        weatherXM.mint(bob, 14246 * 10 ** 18);
-        vm.stopPrank();
-        vm.startPrank(alice);
-        assertEq(weatherXM.balanceOf(bob), 8200 * 10 ** 18 + 14246 * 10 ** 18);
-        vm.stopPrank();
-    }
-
-    function testRevertIfNotMintingFromMintingManager() public {
-        vm.startPrank(bob);
-        vm.expectRevert(WeatherXM.OnlyMintingManager.selector);
-        weatherXM.mint(bob, 100);
-        vm.stopPrank();
-    }
-
-    function testRevertTotalSupplyOver100M() public {
-        vm.startPrank(admin);
-        vm.deal(admin, 1 ether);
-        // Mint exactly 100M tokens
-        weatherXM.mint(bob, 1e8 * 10 ** 18 - initialAmount * 10 ** 18);
-        vm.stopPrank();
-        vm.startPrank(alice);
-        vm.deal(alice, 1 ether);
-        assertEq(weatherXM.totalSupply(), 1e8 * 10 ** 18);
-        
-        vm.expectRevert();
-        weatherXM.mint(bob, 1);
-        
-        assertEq(weatherXM.totalSupply(), 1e8 * 10 ** 18);
-        vm.stopPrank();
+        assertEq(weatherXM.balanceOf(admin), maxSupply);
     }
 
     function testBurnFrom() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        weatherXM.mint(bob, 8200 * 10 ** 18 + 14246 * 10 ** 18);
+        // Send WXM to alice and bob
+        weatherXM.transfer(alice, 10 * 10 ** 18);
+        weatherXM.transfer(bob, 10 * 10 ** 18);
         vm.stopPrank();
         vm.startPrank(bob);
         vm.deal(bob, 1 ether);
         weatherXM.approve(alice, 10 * 10 ** 18);
         vm.stopPrank();
         vm.startPrank(alice);
-        weatherXM.burnFrom(bob, 10 * 10 ** 18);
+        weatherXM.burnFrom(bob, 6 * 10 ** 18);
         assertEq(
             weatherXM.totalSupply(),
-            initialAmount * 10 ** uint256(weatherXM.decimals()) + 8200 * 10 ** 18 + 14246 * 10 ** 18 - 10 * 10 ** 18
+            maxSupply - 6 * 10 ** 18
         );
-        assertEq(weatherXM.balanceOf(bob), 8200 * 10 ** 18 + 14246 * 10 ** 18 - 10 * 10 ** 18);
+        assertEq(weatherXM.balanceOf(bob), 4 * 10 ** 18);
         vm.stopPrank();
     }
 
     function testTransferAllTokens() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        weatherXM.mint(alice, 10 * 10 ** 18);
+        weatherXM.transfer(alice, 10 * 10 ** 18);
         vm.stopPrank();
         vm.startPrank(alice);
         vm.deal(alice, 1 ether);
@@ -135,7 +93,7 @@ contract WeatherXMTest is Test {
     function testTransferOneToken() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        weatherXM.mint(alice, 1 * 10 ** 18);
+        weatherXM.transfer(alice, 10 * 10 ** 18);
         vm.stopPrank();
         vm.startPrank(alice);
         vm.deal(alice, 1 ether);
@@ -147,7 +105,6 @@ contract WeatherXMTest is Test {
     function testCannotTransferMoreThanAvailable() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        weatherXM.mint(alice, 8200 * 10 ** 18 + 14249 * 10 ** 18);
         vm.stopPrank();
         itRevertsTransfer({
             from: alice,
@@ -160,7 +117,6 @@ contract WeatherXMTest is Test {
     function testCannotTransferToZero() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
-        weatherXM.mint(alice, 8200 * 10 ** 18 + 14246 * 10 ** 18);
         vm.stopPrank();
         itRevertsTransfer({
             from: alice,
@@ -170,20 +126,25 @@ contract WeatherXMTest is Test {
         });
     }
 
-    function testPausedMint() public {
-        vm.startPrank(admin);
-        weatherXM.pause();
-        vm.expectRevert(bytes("Pausable: paused"));
-        weatherXM.mint(bob, 1);
-        vm.stopPrank();
-    }
-
     function testPausedTransfer() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
+        weatherXM.transfer(alice, 35);
         weatherXM.pause();
         vm.stopPrank();
-        vm.expectRevert();
+        vm.expectRevert("Pausable: paused");
         transferToken(alice, bob, 35);
+    }
+
+    function testPausedBurn() public {
+        vm.startPrank(admin);
+        vm.deal(admin, 1 ether);
+        weatherXM.transfer(alice, 35);
+        weatherXM.pause();
+        vm.stopPrank();
+        vm.expectRevert("Pausable: paused");
+        vm.startPrank(alice);
+        weatherXM.burn(35);
+        vm.stopPrank();
     }
 }

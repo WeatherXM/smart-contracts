@@ -7,13 +7,11 @@ import { Test } from "forge-std/Test.sol";
 //solhint-disable-next-line no-console
 import { console } from "forge-std/console.sol";
 import { WeatherXM } from "src/WeatherXM.sol";
-import { WeatherXMMintingManager } from "src/WeatherXMMintingManager.sol";
 import { RewardPool } from "src/RewardPool.sol";
 import { RewardPoolV2 } from "src/mocks/utils/RewardPoolV2.test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { IWeatherXM } from "src/interfaces/IWeatherXM.sol";
 import { IRewardPool } from "src/interfaces/IRewardPool.sol";
-import { IWeatherXMMintingManager } from "src/interfaces/IWeatherXMMintingManager.sol";
 import { RLPReader } from "solidity-rlp/RLPReader.sol";
 import { Merkle } from "murky/Merkle.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
@@ -21,18 +19,16 @@ import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerklePr
 bytes32 constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
 
 contract RewardPoolTest is Test {
-  address internal tokenImplementation;
   IRewardPool public rewardImplementation;
-  IWeatherXM public weatherXM;
+  WeatherXM public weatherXM;
   address internal alice;
   address internal bob;
-  address internal owner;
+  address internal owner = address(0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
   ERC1967Proxy public proxy;
   RewardPool public wrappedProxyV1;
   RewardPoolV2 public wrappedProxyV2;
 
   ERC1967Proxy public mintingManagerProxy;
-  WeatherXMMintingManager public mintingManager;
   // RewardPoolV2 public mintingManagerWrappedProxyV2;
 
   bytes32 root;
@@ -63,23 +59,19 @@ contract RewardPoolTest is Test {
     root = abi.decode(resultRoot, (bytes32));
     emit log_bytes(resultRoot.toRlpItem().toBytes());
     m = new Merkle();
-    mintingManager = new WeatherXMMintingManager();
-    tokenImplementation = address(new WeatherXM("WeatherXM", "WXM", address(mintingManager)));
-    mintingManager.setToken(tokenImplementation);
-    weatherXM = IWeatherXM(tokenImplementation);
-    owner = address(0x0);
+    vm.startPrank(owner);
+    weatherXM = new WeatherXM("WeatherXM", "WXM");
     vm.label(owner, "Owner");
     alice = address(0x1);
     vm.label(alice, "Alice");
     bob = address(0x2);
     vm.label(bob, "Bob");
-    vm.startPrank(owner);
     rewardImplementation = new RewardPool();
     proxy = new ERC1967Proxy(address(rewardImplementation), "");
     wrappedProxyV1 = RewardPool(address(proxy));
-    wrappedProxyV1.initialize(tokenImplementation, address(mintingManager));
-    vm.stopPrank();
-    vm.startPrank(weatherXM.owner());
+    wrappedProxyV1.initialize(address(weatherXM));
+    // Transfer the 56M from total supply to the reward pool
+    weatherXM.transfer(address(wrappedProxyV1), 56 * 1e6 * 10 ** 18);
     vm.stopPrank();
   }
 
@@ -98,13 +90,11 @@ contract RewardPoolTest is Test {
   }
 
   function testGetRemainingAllocatedRewards() public {
-    mintingManager.setMintTarget(address(wrappedProxyV1));
     vm.startPrank(owner);
-    mintingManager.mintDaily();
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, 100 * 10 ** 18);
+    wrappedProxyV1.submitMerkleRoot(root);
     for (uint i = 0; i < leaves.length; ++i) {
       RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
       RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
@@ -116,7 +106,7 @@ contract RewardPoolTest is Test {
       uint256 remainingBalance = wrappedProxyV1.getRemainingAllocatedRewards(
         bytesToAddress(rewards[leaves[i]].toList()[0].toBytes()),
         10000000000000000000,
-        1,
+        0,
         _proof
       );
       assertEq(remainingBalance, 10 * 10 ** 18);
@@ -125,13 +115,11 @@ contract RewardPoolTest is Test {
   }
 
   function testThrowWhenInvalidProof() public {
-    mintingManager.setMintTarget(address(wrappedProxyV1));
     vm.startPrank(owner);
-    mintingManager.mintDaily();
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, 100 * 10 ** 18);
+    wrappedProxyV1.submitMerkleRoot(root);
     for (uint i = 0; i < leaves.length; ++i) {
       RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
       RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
@@ -143,7 +131,7 @@ contract RewardPoolTest is Test {
       uint256 remainingBalance = wrappedProxyV1.getRemainingAllocatedRewards(
         bytesToAddress(rewards[leaves[i]].toList()[0].toBytes()),
         10000000000000000000,
-        1,
+        0,
         _proof
       );
       assertEq(remainingBalance, 10 * 10 ** 18);
@@ -152,13 +140,11 @@ contract RewardPoolTest is Test {
   }
 
   function testThrowWhenInvalidProofFuzz(address _address) public {
-    mintingManager.setMintTarget(address(wrappedProxyV1));
     vm.startPrank(owner);
-    mintingManager.mintDaily();
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, 100 * 10 ** 18);
+    wrappedProxyV1.submitMerkleRoot(root);
     RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
     RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
     bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
@@ -169,7 +155,7 @@ contract RewardPoolTest is Test {
     uint256 remainingBalance = wrappedProxyV1.getRemainingAllocatedRewards(
       bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
       10000000000000000000,
-      1,
+      0,
       _proof
     );
     vm.stopPrank();
@@ -180,13 +166,11 @@ contract RewardPoolTest is Test {
   }
 
   function testClaimFuzz(uint256 amount) public {
-    mintingManager.setMintTarget(address(wrappedProxyV1));
     vm.startPrank(owner);
-    mintingManager.mintDaily();
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, 100 * 10 ** 18);
+    wrappedProxyV1.submitMerkleRoot(root);
     RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
     RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
     bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
@@ -197,47 +181,26 @@ contract RewardPoolTest is Test {
     uint256 remainingBalance = wrappedProxyV1.getRemainingAllocatedRewards(
       bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
       10000000000000000000,
-      1,
+      0,
       _proof
     );
     vm.stopPrank();
     vm.startPrank(address(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes())));
     if (amount > remainingBalance || amount == 0) {
       vm.expectRevert();
-      wrappedProxyV1.claim(amount, uint256(rewards[leaves[0]].toList()[1].toUintStrict()), 1, _proof);
+      wrappedProxyV1.claim(amount, uint256(rewards[leaves[0]].toList()[1].toUintStrict()), 0, _proof);
     } else {
-      wrappedProxyV1.claim(amount, 10000000000000000000, 1, _proof);
+      wrappedProxyV1.claim(amount, 10000000000000000000, 0, _proof);
     }
-    vm.stopPrank();
-  }
-
-  function testTransferCompanyTokens() public {
-    mintingManager.setMintTarget(address(wrappedProxyV1));
-    vm.startPrank(owner);
-    wrappedProxyV1.setCompanyTarget(bob);
-    wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, alice);
-    vm.stopPrank();
-    vm.startPrank(alice);
-    uint256 ts = 1641070800;
-    for (uint i = 0; i < 1098;++i) {
-      mintingManager.mintDaily();
-      vm.roll(100 + i * 10);
-      vm.warp(ts + 86400);
-    }
-    wrappedProxyV1.transferCompanyTokens();
-    uint256 companyTokens = weatherXM.balanceOf(bob);
-    assertEq(companyTokens, 30000000 * 10 ** 18);
     vm.stopPrank();
   }
 
   function testTransferRewards() public {
-    mintingManager.setMintTarget(address(wrappedProxyV1));
     vm.startPrank(owner);
-    mintingManager.mintDaily();
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, 100 * 10 ** 18);
+    wrappedProxyV1.submitMerkleRoot(root);
     RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
     RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
     bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
@@ -249,7 +212,7 @@ contract RewardPoolTest is Test {
       bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
       1000000000000000000,
       10000000000000000000,
-      1,
+      0,
       _proof
     );
     uint256 balance = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
@@ -258,13 +221,11 @@ contract RewardPoolTest is Test {
   }
 
   function testTransferRewardsFuzz(uint256 amount) public {
-    mintingManager.setMintTarget(address(wrappedProxyV1));
     vm.startPrank(owner);
-    mintingManager.mintDaily();
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, 100 * 10 ** 18);
+    wrappedProxyV1.submitMerkleRoot(root);
     RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
     RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
     bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
@@ -278,7 +239,7 @@ contract RewardPoolTest is Test {
         bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
         amount,
         10000000000000000000,
-        1,
+        0,
         _proof
       );
     } else {
@@ -286,28 +247,13 @@ contract RewardPoolTest is Test {
         bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
         amount,
         10000000000000000000,
-        1,
+        0,
         _proof
       );
       uint256 balance = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
       assertEq(amount, balance);
     }
     vm.stopPrank();    
-  }
-
-  function testTransferBusinessTokens() public {
-    mintingManager.setMintTarget(address(wrappedProxyV1));
-    mintingManager.mintDaily();
-    vm.startPrank(owner);
-    wrappedProxyV1.setBusinessDevTarget(bob);
-    wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, alice);
-    vm.stopPrank();
-    vm.startPrank(alice);
-    wrappedProxyV1.submitMerkleRoot(root, 100 * 10 ** 18);
-    wrappedProxyV1.transferBusinessDevTokens();
-    uint256 businessDevTokens = weatherXM.balanceOf(bob);
-    assertEq(businessDevTokens, 14146000000000000000000);
-    vm.stopPrank();
   }
 
   function testCompatabilityOpenZeppelinProver(bytes32[] memory _data, uint256 node) public {

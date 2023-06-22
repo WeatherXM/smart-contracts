@@ -31,7 +31,7 @@ describe('RewardPool', () => {
       [await addr8.getAddress(), ethers.utils.parseEther(String(9))],
       [
         await addr9.getAddress(),
-        ethers.utils.parseEther(String(101000)) // this amount is used to test logic when the reward pool doesn't have sufficient funds
+        ethers.utils.parseEther(String(57_000_000)) // this amount is used to test logic when the reward pool doesn't have sufficient funds
       ]
     ];
 
@@ -39,15 +39,12 @@ describe('RewardPool', () => {
     const merkleProofLib = await MerkleProofLib.deploy();
     await merkleProofLib.deployed();
     const Token = await ethers.getContractFactory('WeatherXM');
-    const WeatherXMMintingManager = await ethers.getContractFactory('WeatherXMMintingManager');
-    const mintingManager = await WeatherXMMintingManager.deploy()
-    const token = await Token.deploy('WeatherXM', 'WXM', mintingManager.address);
+    const token = await Token.deploy('WeatherXM', 'WXM');
     await token.deployed();
-    await mintingManager.setToken(token.address);
     const RewardPool = await ethers.getContractFactory('RewardPool');
     const rewardPool = await upgrades.deployProxy(
       RewardPool,
-      [token.address, mintingManager.address],
+      [token.address],
       {
         initializer: 'initialize',
         kind: 'uups'
@@ -61,10 +58,9 @@ describe('RewardPool', () => {
         await distributor.getAddress()
       );
     mine(2);
-    await mintingManager.connect(owner).setMintTarget(rewardPool.address);
-    await mintingManager.connect(distributor).mintDaily();
     mine(1);
-    return { rewards, rewardPool, owner, token, mintingManager, distributor, rewardPoolBalance, addr2, addr3, addr4, addr6, addr9}
+    await token.transfer(rewardPool.address, ethers.utils.parseEther(String(56_000_000)))
+    return { rewards, rewardPool, owner, token, distributor, rewardPoolBalance, addr2, addr3, addr4, addr6, addr9}
   }
   afterEach(async() => {
     const [
@@ -82,28 +78,27 @@ describe('RewardPool', () => {
     rewards[0] = [await addr2.getAddress(), ethers.utils.parseEther(String(10.0))]
   })
   describe('submitMerkleRoot', () => {
-    const rewardAmount = ethers.utils.parseEther('10000');
     it('should submit root hash in the cycle already set by minting', async () => {
-      const { rewards, rewardPool, distributor, mintingManager } = await loadFixture(deployInitialStateFixture);
+      const { rewards, rewardPool, distributor } = await loadFixture(deployInitialStateFixture);
       mine(1);
       const tree = StandardMerkleTree.of(rewards, ['address', 'uint256']);
       const root = tree.root;
-      const cycleNumber = await mintingManager.getCycle();
-      expect(cycleNumber.toNumber()).to.equal(1);
+      const cycleNumber = await rewardPool.cycle();
+      expect(cycleNumber.toNumber()).to.equal(0);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, rewardAmount);
-      const txnGetRoot = await rewardPool.connect(distributor).roots(1);
+        .submitMerkleRoot(root);
+      const txnGetRoot = await rewardPool.connect(distributor).roots(0);
       expect(txnGetRoot).to.equal(root);
     });
 
     it('should not allow 2 merkle roots to be submitted in the same day/cycle', async () => {
-      const { rewards, rewardPool, distributor, mintingManager } = await loadFixture(deployInitialStateFixture);
+      const { rewards, rewardPool, distributor } = await loadFixture(deployInitialStateFixture);
       const tree = StandardMerkleTree.of(rewards, ['address', 'uint256']);
       const root = tree.root;
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, rewardAmount);
+        .submitMerkleRoot(root);
       const updatedRewards = rewards.slice();
       updatedRewards[0][1] = ethers.utils.parseEther('20.0');
       const treeUpdated = StandardMerkleTree.of(updatedRewards, [
@@ -111,12 +106,12 @@ describe('RewardPool', () => {
         'uint256'
       ]);
       const updatedRoot = treeUpdated.root;
-      const cycleNumber = await mintingManager.getCycle();
+      const cycleNumber = await rewardPool.cycle();
       expect(cycleNumber.toNumber()).to.equal(1);
       await expect(
         rewardPool
           .connect(distributor)
-          .submitMerkleRoot(updatedRoot, ethers.utils.parseEther('1000.0'))
+          .submitMerkleRoot(updatedRoot)
       ).to.be.reverted;
     });
 
@@ -125,14 +120,14 @@ describe('RewardPool', () => {
       const tree = StandardMerkleTree.of(rewards, ['address', 'uint256']);
       const root = tree.root;
       await expect(
-        rewardPool.connect(addr2).submitMerkleRoot(root, rewardAmount)
+        rewardPool.connect(addr2).submitMerkleRoot(root)
       ).to.be.reverted;
     });
   });
 
   describe('getRecipientRewardsBalance', () => {
     async function deployRewardsBalanceFixture() {
-      const { rewards, rewardPool, mintingManager, distributor } = await loadFixture(deployInitialStateFixture);
+      const { rewards, rewardPool, distributor } = await loadFixture(deployInitialStateFixture);
       const rewardee = rewards[0][0];
       const rewardee2 = rewards[1][0];
       const rewardAmount = rewards[0][1];
@@ -150,10 +145,10 @@ describe('RewardPool', () => {
       }
       const root = tree.root;
       const rewardCumulativeAmount = ethers.utils.parseEther(String(10000));
-      const rewardCycle = await mintingManager.getCycle();
+      const rewardCycle = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, rewardCumulativeAmount);
+        .submitMerkleRoot(root);
       const updatedRewards = rewards.slice();
       const updatedRewardAmount = ethers.utils.parseEther(String(20));
       updatedRewards[0][1] = updatedRewardAmount;
@@ -229,16 +224,15 @@ describe('RewardPool', () => {
     });
 
     it('should handle balance for proofs from different reward cycles', async () => {
-      const { rewardPool, distributor, addr2, mintingManager } = await loadFixture(deployInitialStateFixture);
-      const { rewardee, rewardCycle, rewardAmount, proof, updatedRoot, updatedProof, rewardCumulativeAmount, updatedRewardAmount } = await loadFixture(deployRewardsBalanceFixture)
-      //rewardCycle = await mintingManager.getCycle();
+      const { rewardPool, distributor, addr2 } = await loadFixture(deployInitialStateFixture);
+      const { rewardee, rewardCycle, rewardAmount, proof, updatedRoot, updatedProof, updatedRewardAmount } = await loadFixture(deployRewardsBalanceFixture)
+      //rewardCycle = await rewardPool.cycle();
       time.increase(86401);
       //anyone can mint
-      await mintingManager.connect(addr2).mintDaily();
-      const rewardCycleUpdated = await mintingManager.getCycle();
+      const rewardCycleUpdated = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, rewardCumulativeAmount);
+        .submitMerkleRoot(updatedRoot);
 
       const remainedTokensUpdated =
         await rewardPool.getRemainingAllocatedRewards(
@@ -264,15 +258,14 @@ describe('RewardPool', () => {
     });
 
     it('should not be able to get remaining amount when cumulative amount is 0 rewards in the tree', async () => {
-      const { rewardPool, distributor, mintingManager } = await loadFixture(deployInitialStateFixture);
-      const { updatedRoot, updatedProof, rewardCumulativeAmount } = await loadFixture(deployRewardsBalanceFixture)
-      //rewardCycle = await mintingManager.getCycle();
+      const { rewardPool, distributor } = await loadFixture(deployInitialStateFixture);
+      const { updatedRoot, updatedProof } = await loadFixture(deployRewardsBalanceFixture)
+      //rewardCycle = await rewardPool.cycle();
       time.increase(86401);
-      await mintingManager.connect(distributor).mintDaily();
-      const rewardCycleUpdated = await mintingManager.getCycle();
+      const rewardCycleUpdated = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, rewardCumulativeAmount);
+        .submitMerkleRoot(updatedRoot);
       await expect(
         rewardPool
           .connect(distributor)
@@ -307,11 +300,10 @@ describe('RewardPool', () => {
         }
       }
       const root = tree.root;
-      const rewardCumulativeAmount = ethers.utils.parseEther(String(10000));
       time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, rewardCumulativeAmount);
+        .submitMerkleRoot(root);
       const insufficientFundsRewardee = rewards[7][0];
       const insufficientFundsRewardAmount = rewards[7][1];
       for (const [i, v] of tree.entries()) {
@@ -330,7 +322,6 @@ describe('RewardPool', () => {
         rewardee,
         rewardAmount,
         rewardPoolBalance,
-        rewardCumulativeAmount,
         proof, 
         proof7, 
         garbageProof, 
@@ -346,7 +337,7 @@ describe('RewardPool', () => {
       const { rewardee, rewardAmount, proof } = await loadFixture(deployClaimFixture);
       const remainedTokens = await rewardPool
         .connect(addr2)
-        .getRemainingAllocatedRewards(rewardee, rewardAmount, 1, proof);
+        .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
       expect(await ethers.utils.formatUnits(String(remainedTokens), 'wei')).to.equal(
         await ethers.utils.formatUnits(String(rewardAmount), 'wei')
       );
@@ -356,12 +347,12 @@ describe('RewardPool', () => {
         await ethers.utils.formatUnits(String(balanceOfRewardPool), 'wei')
       ).to.equal(
         await ethers.utils.formatUnits(
-          String(ethers.utils.parseEther(String(22446))),
+          String(ethers.utils.parseEther(String(56_000_000))),
           'wei'
         )
       );
       expect(
-        await rewardPool.connect(addr2).claim(rewardAmount, rewardAmount, 1, proof)
+        await rewardPool.connect(addr2).claim(rewardAmount, rewardAmount, 0, proof)
       )
         .to.emit(rewardPool, 'Claimed')
         .withArgs(rewardee, rewardAmount);
@@ -369,7 +360,7 @@ describe('RewardPool', () => {
       const claims = await rewardPool.claims(rewardee);
       const proofBalanceAfterClaim = await rewardPool
         .connect(addr2)
-        .getRemainingAllocatedRewards(rewardee, rewardAmount, 1, proof);
+        .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
       expect(ethers.utils.formatUnits(String(rewardeeBalance), 'wei')).to.equal(
         ethers.utils.formatUnits(String(rewardAmount), 'wei')
       );
@@ -388,12 +379,12 @@ describe('RewardPool', () => {
       // substraction of numbers in WEI should not result to a number with decimals
       // when this happens, substraction is made between Integers and then transform to WEI
       const remainingRewardPoolBalance = ethers.utils.parseEther(
-        String(22446 - 8)
+        String(56_000_000 - 8)
       );
       await expect(
         rewardPool
           .connect(addr2)
-          .claim(withdrawalAmount, rewardAmount, 1, proof)
+          .claim(withdrawalAmount, rewardAmount, 0, proof)
       )
         .to.emit(rewardPool, 'Claimed')
         .withArgs(rewardee, withdrawalAmount);
@@ -403,7 +394,7 @@ describe('RewardPool', () => {
       await rewardPool.getRemainingAllocatedRewards(
         rewardee,
         rewardAmount,
-        1,
+        0,
         proof
       );
       expect(rewardeeBalance).to.be.equal(withdrawalAmount);
@@ -417,10 +408,10 @@ describe('RewardPool', () => {
       const withdrawalAmount = rewards[0][1];
       await rewardPool
         .connect(addr2)
-        .claim(ethers.utils.parseEther(String(4)), rewardAmount, 1, proof);
+        .claim(ethers.utils.parseEther(String(4)), rewardAmount, 0, proof);
       await rewardPool
         .connect(addr2)
-        .claim(ethers.utils.parseEther(String(6)), rewardAmount, 1, proof);
+        .claim(ethers.utils.parseEther(String(6)), rewardAmount, 0, proof);
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
       const claims = await rewardPool.claims(rewardee);
@@ -428,11 +419,14 @@ describe('RewardPool', () => {
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           rewardAmount,
-          1,
+          0,
           proof
         );
       expect(rewardeeBalance).to.be.equal(rewardAmount);
-      expect(poolBalance).to.be.equal(ethers.utils.parseEther(String(22436)));
+
+      expect(poolBalance).to.be.equal(ethers.utils.parseEther(String(
+        56_000_000 - Number(ethers.utils.formatEther(rewardAmount))
+      )));
       expect(claims).to.be.equal(withdrawalAmount);
       expect(proofBalanceAfterClaims).to.be.equal(0);
     });
@@ -444,7 +438,7 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(addr2)
-          .claim(withdrawalAmount, rewardAmount, 1, proof)
+          .claim(withdrawalAmount, rewardAmount, 0, proof)
       ).to.be.revertedWithCustomError(rewardPool, "AmountIsOverAvailableRewardsToWithdraw");
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
@@ -453,7 +447,7 @@ describe('RewardPool', () => {
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           rewardAmount,
-          1,
+          0,
           proof
         );
       expect(ethers.utils.formatUnits(String(poolBalance), 'wei')).to.equal(
@@ -472,7 +466,7 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(addr2)
-          .claim(withdrawalAmount, rewardAmount, 1, garbageProof)
+          .claim(withdrawalAmount, rewardAmount, 0, garbageProof)
       ).to.be.reverted;
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
@@ -481,13 +475,13 @@ describe('RewardPool', () => {
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           rewardAmount,
-          1,
+          0,
           proof
         );
       await expect(
         rewardPool
           .connect(addr2)
-          .getRemainingAllocatedRewards(rewardee, rewardAmount, 1, garbageProof)
+          .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, garbageProof)
       ).to.be.reverted;
       expect(rewardeeBalance).to.be.equal(0);
       expect(poolBalance).to.be.equal(rewardPoolBalance);
@@ -497,18 +491,18 @@ describe('RewardPool', () => {
 
     it('should not be able to make mulitple claims that total to more than their allotted amount from the pool', async () => {
       const { rewardPool, addr2, token } = await loadFixture(deployInitialStateFixture);
-      const { rewardee, rewardPoolBalance, rewardAmount, proof, garbageProof } = await loadFixture(deployClaimFixture);
+      const { rewardee, rewardAmount, proof, garbageProof } = await loadFixture(deployClaimFixture);
       const withdrawalAmount = ethers.utils.parseEther(String(4));
       await rewardPool
         .connect(addr2)
-        .claim(withdrawalAmount, rewardAmount, 1, proof);
+        .claim(withdrawalAmount, rewardAmount, 0, proof);
       await expect(
         rewardPool
           .connect(addr2)
           .claim(
             ethers.utils.parseEther(String(7)),
             rewardAmount,
-            1,
+            0,
             garbageProof
           )
       ).to.be.reverted;
@@ -519,11 +513,13 @@ describe('RewardPool', () => {
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           rewardAmount,
-          1,
+          0,
           proof
         );
       expect(rewardeeBalance).to.be.equal(withdrawalAmount);
-      expect(poolBalance).to.be.equal(ethers.utils.parseEther(String(22442)));
+      expect(poolBalance).to.be.equal(ethers.utils.parseEther(String(
+        56_000_000 - Number(ethers.utils.formatEther(withdrawalAmount))
+      )));
       expect(claims).to.be.equal(withdrawalAmount);
       expect(proofBalanceAfterClaim).to.be.equal(
         ethers.utils.parseEther(String(6))
@@ -539,7 +535,7 @@ describe('RewardPool', () => {
           .claim(
             ethers.utils.parseEther(String(0)),
             rewardAmount,
-            1,
+            0,
             garbageProof
           )
       ).to.be.reverted;
@@ -554,7 +550,7 @@ describe('RewardPool', () => {
           .claim(
             ethers.utils.parseEther(String(10)),
             rewardAmount,
-            1,
+            0,
             garbageProof
           )
       ).to.be.reverted;
@@ -569,7 +565,7 @@ describe('RewardPool', () => {
           .claim(
             insufficientFundsRewardAmount,
             insufficientFundsRewardAmount,
-            1,
+            0,
             proof7
           )
       ).to.be.reverted;
@@ -580,7 +576,7 @@ describe('RewardPool', () => {
         await rewardPool.getRemainingAllocatedRewards(
           insufficientFundsRewardee,
           insufficientFundsRewardAmount,
-          1,
+          0,
           proof7
         );
       expect(rewardeeBalance).to.be.equal(0);
@@ -590,8 +586,8 @@ describe('RewardPool', () => {
     });
 
     it('should claim allotted amount from both an older and new proof', async () => {
-      const { rewards, rewardPool, distributor, token, addr4, addr2, mintingManager } = await loadFixture(deployInitialStateFixture);
-      const { rewardee, rewardAmount, rewardCumulativeAmount, proof } = await loadFixture(deployClaimFixture);
+      const { rewards, rewardPool, distributor, token, addr2 } = await loadFixture(deployInitialStateFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(deployClaimFixture);
       let updatedProof: string[]|undefined;
       const updatedRewards = rewards.slice();
       const updatedRewardAmount = ethers.utils.parseEther(String(20));
@@ -607,26 +603,25 @@ describe('RewardPool', () => {
         }
       }
       time.increase(90000);
-      await mintingManager.connect(addr4).mintDaily();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, rewardCumulativeAmount);
+        .submitMerkleRoot(updatedRoot);
       const withdrawalAmount = ethers.utils.parseEther(String(20));
       await rewardPool
         .connect(addr2)
-        .claim(ethers.utils.parseEther(String(8)), rewardAmount, 1, proof);
+        .claim(ethers.utils.parseEther(String(8)), rewardAmount, 0, proof);
       const proofBalanceAfterClaim =
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           rewardAmount,
-          1,
+          0,
           proof
         );
       const udpatedProofBalanceAfterClaim =
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           updatedRewardAmount,
-          2,
+          1,
           updatedProof
         );
       expect(proofBalanceAfterClaim).to.be.equal(
@@ -640,7 +635,7 @@ describe('RewardPool', () => {
         .claim(
           ethers.utils.parseEther(String(12)),
           updatedRewardAmount,
-          2,
+          1,
           updatedProof
         );
 
@@ -649,14 +644,14 @@ describe('RewardPool', () => {
       const claims = await rewardPool.claims(rewardee);
       expect(rewardeeBalance).to.be.equal(withdrawalAmount);
       expect(poolBalance).to.be.equal(
-        ethers.utils.parseEther(String(44892 - 20))
+        ethers.utils.parseEther(String(56_000_000 - 20))
       );
       expect(claims).to.be.equal(withdrawalAmount);
     });
 
     it("should not allow a rewardee to exceed their provided proof's allotted amount when withdrawing from an older proof and a newer proof", async () => {
-      const { rewards, rewardPool, distributor, token, addr4, addr2, mintingManager } = await loadFixture(deployInitialStateFixture);
-      const { rewardee, rewardAmount, rewardCumulativeAmount, proof } = await loadFixture(deployClaimFixture);
+      const { rewards, rewardPool, distributor, token, addr2 } = await loadFixture(deployInitialStateFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(deployClaimFixture);
       let updatedProof: string[]|undefined;
       const updatedRewards = rewards.slice();
       const updatedRewardAmount = ethers.utils.parseEther(String(20));
@@ -672,16 +667,15 @@ describe('RewardPool', () => {
         }
       }
       time.increase(90000);
-      await mintingManager.connect(addr2).mintDaily();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, rewardCumulativeAmount);
+        .submitMerkleRoot(updatedRoot);
       await rewardPool
         .connect(addr2)
         .claim(
           ethers.utils.parseEther(String(8)),
           updatedRewardAmount,
-          2,
+          1,
           updatedProof
         );
 
@@ -689,14 +683,14 @@ describe('RewardPool', () => {
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           rewardAmount,
-          1,
+          0,
           proof
         );
       const udpatedProofBalanceAfterClaim =
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           updatedRewardAmount,
-          2,
+          1,
           updatedProof
         );
       expect(proofBalanceAfterClaim).to.be.equal(
@@ -708,14 +702,14 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(addr2)
-          .claim(ethers.utils.parseEther(String(12)), rewardAmount, 1, proof)
+          .claim(ethers.utils.parseEther(String(12)), rewardAmount, 0, proof)
       ).to.be.reverted;
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
       const claims = await rewardPool.claims(rewardee);
       expect(rewardeeBalance).to.be.equal(ethers.utils.parseEther(String(8)));
       expect(poolBalance).to.be.equal(
-        ethers.utils.parseEther(String(44892 - 8))
+        ethers.utils.parseEther(String(56_000_000 - 8))
       );
       expect(claims).to.be.equal(ethers.utils.parseEther(String(8)));
       expect(proofBalanceAfterClaim).to.be.equal(
@@ -734,18 +728,18 @@ describe('RewardPool', () => {
       const remainedTokens = await rewardPool.getRemainingAllocatedRewards(
         rewardee,
         rewardAmount,
-        1,
+        0,
         decimalRewardsProof
       );
       expect(remainedTokens).to.be.equal(rewardAmount);
       const balanceOfRewardPool = await token.balanceOf(rewardPool.address);
       expect(balanceOfRewardPool).to.be.equal(
-        ethers.utils.parseEther(String(22446))
+        ethers.utils.parseEther(String(56_000_000))
       );
       await expect(
         rewardPool
           .connect(addr6)
-          .claim(rewardAmount, rewardAmount, 1, decimalRewardsProof)
+          .claim(rewardAmount, rewardAmount, 0, decimalRewardsProof)
       )
         .to.emit(rewardPool, 'Claimed')
         .withArgs(rewardee, rewardAmount);
@@ -756,13 +750,13 @@ describe('RewardPool', () => {
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           rewardAmount,
-          1,
+          0,
           decimalRewardsProof
         );
 
       expect(rewardeeBalance).to.be.equal(rewardAmount);
       expect(poolBalance).to.be.equal(
-        ethers.utils.parseEther(String(22446 - 11.78))
+        ethers.utils.parseEther(String(56_000_000 - 11.78))
       );
       expect(claims).to.be.equal(rewardAmount);
       expect(proofBalanceAfterClaim).to.be.equal(0);
@@ -771,7 +765,7 @@ describe('RewardPool', () => {
 
   describe('transfer rewards', () => {
     async function deployTransferRewardsState() {
-      const { rewards, rewardPool, token, distributor } = await loadFixture(deployInitialStateFixture);
+      const { rewards, rewardPool, distributor } = await loadFixture(deployInitialStateFixture);
       const rewardee = rewards[0][0];
       let proof: string[] | undefined;
       const rewardAmount = rewards[0][1];
@@ -782,12 +776,11 @@ describe('RewardPool', () => {
         }
       }
       const root = tree.root;
-      const rewardCumulativeAmount = ethers.utils.parseEther(String(10000));
       time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, rewardCumulativeAmount);
-      return {rewardee, proof, rewardAmount, rewardCumulativeAmount}
+        .submitMerkleRoot(root);
+      return {rewardee, proof, rewardAmount}
       
     }
 
@@ -796,7 +789,7 @@ describe('RewardPool', () => {
       const { rewardee, proof, rewardAmount } = await loadFixture(deployTransferRewardsState);
       await rewardPool
         .connect(distributor)
-        .transferRewards(rewardee, rewardAmount, rewardAmount, 1, proof);
+        .transferRewards(rewardee, rewardAmount, rewardAmount, 0, proof);
       const rewardeeBalance = await token.balanceOf(rewardee);
       expect(rewardeeBalance).to.be.equal(rewardAmount);
     });
@@ -807,7 +800,7 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(distributor)
-          .transferRewards(rewards[1][0], rewardAmount, rewardAmount, 1, proof)
+          .transferRewards(rewards[1][0], rewardAmount, rewardAmount, 0, proof)
       ).to.be.reverted;
     });
 
@@ -818,7 +811,7 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(distributor)
-          .transferRewards(rewardee, withdrawalAmount, rewardAmount, 1, proof)
+          .transferRewards(rewardee, withdrawalAmount, rewardAmount, 0, proof)
       ).to.be.reverted;
       const balance = await token.balanceOf(rewardee);
       expect(balance).to.be.equal(0);
@@ -831,7 +824,7 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(distributor)
-          .transferRewards(rewardee, withdrawalAmount, rewardAmount, 1, proof)
+          .transferRewards(rewardee, withdrawalAmount, rewardAmount, 0, proof)
       ).to.be.reverted;
       const balance = await token.balanceOf(rewardee);
       expect(balance).to.be.equal(0);
@@ -844,116 +837,43 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(addr2)
-          .transferRewards(rewardee, withdrawalAmount, rewardAmount, 1, proof)
+          .transferRewards(rewardee, withdrawalAmount, rewardAmount, 0, proof)
       ).to.be.reverted;
       const balance = await token.balanceOf(rewardee);
       expect(balance).to.be.equal(0);
     });
   });
 
-  describe('transfer company and investors tokens', () => {
-    async function deployTransferCompanyInvestorsTokensState() {
-      const { rewards, rewardPool, token, owner, mintingManager } = await loadFixture(deployInitialStateFixture);
-      const companyTarget = rewards[0][0];
-      const rewardCycle = await mintingManager.getCycle();
-      await time.increase(90000);
-      await rewardPool.connect(owner).setCompanyTarget(companyTarget);
-      return { companyTarget, rewardCycle }
-    }
-    it('should enable distributor to transfer company tokens to an address', async () => {
-      const { rewardPool, token, mintingManager, distributor } = await loadFixture(deployInitialStateFixture);
-      const { companyTarget, rewardCycle } = await loadFixture(deployTransferCompanyInvestorsTokensState);
-      const companyMint = await mintingManager.dailyCompanyMint(rewardCycle);
-      await expect(rewardPool.connect(distributor).transferCompanyTokens())
-        .to.emit(rewardPool, 'CompanyTokensTransferred')
-        .withArgs(companyTarget, companyMint);
-      const withdrawals = await rewardPool.companyWithdrawals();
-      const balance = await token.balanceOf(companyTarget);
-      expect(balance).to.be.equal(withdrawals);
-      expect(balance).to.be.equal(companyMint);
-    });
 
-    it('should not permit non-distributor to transfer company tokens to an address', async () => {
-      const { rewardPool, addr4 } = await loadFixture(deployInitialStateFixture);
-      await expect(rewardPool.connect(addr4).transferCompanyTokens()).to.be
-        .reverted;
-    });
-
-    it('should transfer 6000000 tokens by the end of the 2nd year', async () => {
-      const { rewardPool, token, distributor, mintingManager } = await loadFixture(deployInitialStateFixture);
-      const { companyTarget } = await loadFixture(deployTransferCompanyInvestorsTokensState);
-      for (let i = 1; i < 732; i++) {
-        await time.increase(90000);
-        await mintingManager.mintDaily();
-      }
-      await expect(rewardPool.connect(distributor).transferCompanyTokens())
-        .to.emit(rewardPool, 'CompanyTokensTransferred')
-        .withArgs(companyTarget, ethers.utils.parseEther(String(6000000)));
-      const balance = await token.balanceOf(companyTarget);
-      expect(balance).to.be.equal(ethers.utils.parseEther(String(6000000)));
-    });
-
-    it('should transfer 30000000 tokens by the end of the 3rd year', async () => {
-      const { rewardPool, token, distributor, mintingManager } = await loadFixture(deployInitialStateFixture);
-      const { companyTarget } = await loadFixture(deployTransferCompanyInvestorsTokensState);
-      for (let i = 1; i < 1098; i++) {
-        await time.increase(90000);
-        await mintingManager.mintDaily();
-      }
-      await expect(rewardPool.connect(distributor).transferCompanyTokens())
-        .to.emit(rewardPool, 'CompanyTokensTransferred')
-        .withArgs(companyTarget, ethers.utils.parseEther(String(30000000)));
-      const balance = await token.balanceOf(companyTarget);
-      expect(balance).to.be.equal(ethers.utils.parseEther(String(30000000)));
-    });
-
-    it('should revert after 30000000 tokens are already requested', async () => {
-      const { rewardPool, token, distributor, mintingManager } = await loadFixture(deployInitialStateFixture);
-      const { companyTarget } = await loadFixture(deployTransferCompanyInvestorsTokensState);
-      for (let i = 1; i < 1098; i++) {
-        await time.increase(90000);
-        await mintingManager.mintDaily();
-      }
-      await expect(rewardPool.connect(distributor).transferCompanyTokens())
-        .to.emit(rewardPool, 'CompanyTokensTransferred')
-        .withArgs(companyTarget, ethers.utils.parseEther(String(30000000)));
-      const balance = await token.balanceOf(companyTarget);
-      expect(balance).to.be.equal(ethers.utils.parseEther(String(30000000)));
-      await time.increase(90000);
-      await mintingManager.mintDaily();
-      await expect(rewardPool.connect(distributor).transferCompanyTokens()).to
-        .be.reverted;
-    });
-  });
   describe('testing pausability', () => {
     async function deployPausabilityState() {
-      const { rewards, rewardPool, owner, mintingManager } = await loadFixture(deployInitialStateFixture);
+      const { rewards, rewardPool, owner } = await loadFixture(deployInitialStateFixture);
       const companyTarget = rewards[0][0];
-      const rewardCycle = await mintingManager.getCycle();
+      const rewardCycle = await rewardPool.cycle();
       await time.increase(90000);
       await rewardPool.connect(owner).setCompanyTarget(companyTarget);
       return { companyTarget, rewardCycle }
     }
-    it('should pause rewardpool', async () => {
-      const { rewardPool, addr2, owner } = await loadFixture(deployInitialStateFixture);
-      await time.increase(90000);
-      if (await rewardPool.connect(owner).pause()) {
-        await expect(rewardPool.connect(addr2).transferCompanyTokens()).to.be
-          .reverted;
-      }
-    });
-    it('should unpause rewardpool', async () => {
-      const { rewardPool, mintingManager, distributor, owner } = await loadFixture(deployInitialStateFixture);
-      const { companyTarget, rewardCycle } = await loadFixture(deployPausabilityState);
-      const companyMint = await mintingManager.dailyCompanyMint(rewardCycle);
-      await time.increase(90000);
-      await rewardPool.connect(owner).pause();
-      if (await rewardPool.connect(owner).unpause()) {
-        await expect(rewardPool.connect(distributor).transferCompanyTokens())
-          .to.emit(rewardPool, 'CompanyTokensTransferred')
-          .withArgs(companyTarget, companyMint);
-      }
-    });
+    // it('should pause rewardpool', async () => {
+    //   const { rewardPool, addr2, owner } = await loadFixture(deployInitialStateFixture);
+    //   await time.increase(90000);
+    //   if (await rewardPool.connect(owner).pause()) {
+    //     await expect(rewardPool.connect(addr2).transferCompanyTokens()).to.be
+    //       .reverted;
+    //   }
+    // });
+    // it('should unpause rewardpool', async () => {
+    //   const { rewardPool, distributor, owner } = await loadFixture(deployInitialStateFixture);
+    //   const { companyTarget, rewardCycle } = await loadFixture(deployPausabilityState);
+    //   const companyMint = await mintingManager.dailyCompanyMint(rewardCycle);
+    //   await time.increase(90000);
+    //   await rewardPool.connect(owner).pause();
+    //   if (await rewardPool.connect(owner).unpause()) {
+    //     await expect(rewardPool.connect(distributor).transferCompanyTokens())
+    //       .to.emit(rewardPool, 'CompanyTokensTransferred')
+    //       .withArgs(companyTarget, companyMint);
+    //   }
+    // });
   });
   describe('testing upgradeability', () => {
     it('should upgrade rewardpool to rewardpoolV2', async () => {

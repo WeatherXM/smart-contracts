@@ -14,6 +14,8 @@ import { IWeatherXM } from "src/interfaces/IWeatherXM.sol";
 import { IBurnPool } from "src/interfaces/IBurnPool.sol";
 import { IWeatherXM } from "src/interfaces/IWeatherXM.sol";
 import { MintableERC20 } from "src/mocks/token/MintableERC20.sol";
+//solhint-disable-next-line no-console
+import { console } from "forge-std/console.sol";
 
 contract BurnPoolTest is Test {
   address internal tokenImplementation;
@@ -93,7 +95,6 @@ contract BurnPoolTest is Test {
 
   function testBurnForServiceLessAllowanceThanRequested() public {
     vm.startPrank(bob);
-    testToken.mint(10 * 10 ** 18);
     testToken.approve(address(proxy), 10 * 10 ** 18);
     vm.expectRevert("ERC20: insufficient allowance");
     wrappedProxyV1.burnForService(11 * 10 ** 18, "Weather Forecast");
@@ -130,7 +131,6 @@ contract BurnPoolTest is Test {
     assertEq(wrappedProxyV1.hasRole(MANUFACTURER_ROLE, bob), true);
     vm.stopPrank();
     vm.startPrank(bob);
-    testToken.mint(10 * 10 ** 18);
     testToken.approve(address(proxy), 10 * 10 ** 18);
     vm.expectRevert("ERC20: insufficient allowance");
     wrappedProxyV1.burnOnboardingFee(11 * 10 ** 18, IPFS_CID);
