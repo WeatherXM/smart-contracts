@@ -29,10 +29,7 @@ contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
     _;
   }
 
-  constructor(
-    string memory _name,
-    string memory _symbol
-  ) ERC20(_name, _symbol) ERC20Capped(maxSupply) {
+  constructor(string memory _name, string memory _symbol) ERC20(_name, _symbol) ERC20Capped(maxSupply) {
     _mint(_msgSender(), maxSupply);
   }
 
