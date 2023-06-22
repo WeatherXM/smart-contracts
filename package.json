@@ -4,6 +4,7 @@
 	"description": "The smart contracts which make up the WeatherXM system. (weatherxm.com)",
 	"scripts": {
 		"setup": "npm install && forge install",
+		"prepare": "husky install",
 		"test:sol": "npm run generate:testing-data && forge test --ffi",
 		"test:spec": "npx hardhat test test/*.spec.ts",
 		"test:integration": "npx hardhat --config hardhat-fork.config.ts test",
@@ -24,8 +25,7 @@
 		"generate:testing-data": "npx ts-node test-foundry/scripts/encode.ts",
 		"class:diagram": "npx sol2uml -sc deeppink -tc white -fc dimgrey -bc black ./src -o classDiagram.svg",
 		"flatten:rewardpool": "forge flatten ./src/RewardPool.sol -o ./src/RewardPool_flattened.sol",
-		"storage:diagram:rewardpool": "npx sol2uml storage -c RewardPool ./src/RewardPool_flattened.sol",
-		"prepare": "husky install"
+		"storage:diagram:rewardpool": "npx sol2uml storage -c RewardPool ./src/RewardPool_flattened.sol"
 	},
 	"repository": {
 		"type": "git",
