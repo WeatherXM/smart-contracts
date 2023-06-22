@@ -33,11 +33,11 @@ contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
     _mint(_msgSender(), maxSupply);
   }
 
-  function burn(uint256 amount) external {
+  function burn(uint256 amount) external whenNotPaused {
     super._burn(_msgSender(), amount);
   }
 
-  function burnFrom(address account, uint256 amount) external {
+  function burnFrom(address account, uint256 amount) external whenNotPaused {
     super._spendAllowance(account, _msgSender(), amount);
     super._burn(account, amount);
   }
@@ -54,10 +54,7 @@ contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
     return ERC20Capped._mint(account, amount);
   }
 
-  function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
+  function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override whenNotPaused {
     super._beforeTokenTransfer(from, to, amount);
-    if (paused()) {
-      revert TokenTransferWhilePaused();
-    }
   }
 }

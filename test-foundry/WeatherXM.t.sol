@@ -129,18 +129,22 @@ contract WeatherXMTest is Test {
     function testPausedTransfer() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
+        weatherXM.transfer(alice, 35);
         weatherXM.pause();
         vm.stopPrank();
-        vm.expectRevert();
+        vm.expectRevert("Pausable: paused");
         transferToken(alice, bob, 35);
     }
 
     function testPausedBurn() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
+        weatherXM.transfer(alice, 35);
         weatherXM.pause();
         vm.stopPrank();
-        vm.expectRevert();
-        transferToken(alice, bob, 35);
+        vm.expectRevert("Pausable: paused");
+        vm.startPrank(alice);
+        weatherXM.burn(35);
+        vm.stopPrank();
     }
 }

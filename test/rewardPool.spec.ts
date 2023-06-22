@@ -78,7 +78,6 @@ describe('RewardPool', () => {
     rewards[0] = [await addr2.getAddress(), ethers.utils.parseEther(String(10.0))]
   })
   describe('submitMerkleRoot', () => {
-    const rewardAmount = ethers.utils.parseEther('10000');
     it('should submit root hash in the cycle already set by minting', async () => {
       const { rewards, rewardPool, distributor } = await loadFixture(deployInitialStateFixture);
       mine(1);
@@ -88,7 +87,7 @@ describe('RewardPool', () => {
       expect(cycleNumber.toNumber()).to.equal(0);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, rewardAmount);
+        .submitMerkleRoot(root);
       const txnGetRoot = await rewardPool.connect(distributor).roots(0);
       expect(txnGetRoot).to.equal(root);
     });
@@ -99,7 +98,7 @@ describe('RewardPool', () => {
       const root = tree.root;
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, rewardAmount);
+        .submitMerkleRoot(root);
       const updatedRewards = rewards.slice();
       updatedRewards[0][1] = ethers.utils.parseEther('20.0');
       const treeUpdated = StandardMerkleTree.of(updatedRewards, [
@@ -112,7 +111,7 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(distributor)
-          .submitMerkleRoot(updatedRoot, ethers.utils.parseEther('1000.0'))
+          .submitMerkleRoot(updatedRoot)
       ).to.be.reverted;
     });
 
@@ -121,7 +120,7 @@ describe('RewardPool', () => {
       const tree = StandardMerkleTree.of(rewards, ['address', 'uint256']);
       const root = tree.root;
       await expect(
-        rewardPool.connect(addr2).submitMerkleRoot(root, rewardAmount)
+        rewardPool.connect(addr2).submitMerkleRoot(root)
       ).to.be.reverted;
     });
   });
@@ -149,7 +148,7 @@ describe('RewardPool', () => {
       const rewardCycle = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, rewardCumulativeAmount);
+        .submitMerkleRoot(root);
       const updatedRewards = rewards.slice();
       const updatedRewardAmount = ethers.utils.parseEther(String(20));
       updatedRewards[0][1] = updatedRewardAmount;
@@ -226,14 +225,14 @@ describe('RewardPool', () => {
 
     it('should handle balance for proofs from different reward cycles', async () => {
       const { rewardPool, distributor, addr2 } = await loadFixture(deployInitialStateFixture);
-      const { rewardee, rewardCycle, rewardAmount, proof, updatedRoot, updatedProof, rewardCumulativeAmount, updatedRewardAmount } = await loadFixture(deployRewardsBalanceFixture)
+      const { rewardee, rewardCycle, rewardAmount, proof, updatedRoot, updatedProof, updatedRewardAmount } = await loadFixture(deployRewardsBalanceFixture)
       //rewardCycle = await rewardPool.cycle();
       time.increase(86401);
       //anyone can mint
       const rewardCycleUpdated = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, rewardCumulativeAmount);
+        .submitMerkleRoot(updatedRoot);
 
       const remainedTokensUpdated =
         await rewardPool.getRemainingAllocatedRewards(
@@ -260,13 +259,13 @@ describe('RewardPool', () => {
 
     it('should not be able to get remaining amount when cumulative amount is 0 rewards in the tree', async () => {
       const { rewardPool, distributor } = await loadFixture(deployInitialStateFixture);
-      const { updatedRoot, updatedProof, rewardCumulativeAmount } = await loadFixture(deployRewardsBalanceFixture)
+      const { updatedRoot, updatedProof } = await loadFixture(deployRewardsBalanceFixture)
       //rewardCycle = await rewardPool.cycle();
       time.increase(86401);
       const rewardCycleUpdated = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, rewardCumulativeAmount);
+        .submitMerkleRoot(updatedRoot);
       await expect(
         rewardPool
           .connect(distributor)
@@ -301,11 +300,10 @@ describe('RewardPool', () => {
         }
       }
       const root = tree.root;
-      const rewardCumulativeAmount = ethers.utils.parseEther(String(10000));
       time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, rewardCumulativeAmount);
+        .submitMerkleRoot(root);
       const insufficientFundsRewardee = rewards[7][0];
       const insufficientFundsRewardAmount = rewards[7][1];
       for (const [i, v] of tree.entries()) {
@@ -324,7 +322,6 @@ describe('RewardPool', () => {
         rewardee,
         rewardAmount,
         rewardPoolBalance,
-        rewardCumulativeAmount,
         proof, 
         proof7, 
         garbageProof, 
@@ -590,7 +587,7 @@ describe('RewardPool', () => {
 
     it('should claim allotted amount from both an older and new proof', async () => {
       const { rewards, rewardPool, distributor, token, addr2 } = await loadFixture(deployInitialStateFixture);
-      const { rewardee, rewardAmount, rewardCumulativeAmount, proof } = await loadFixture(deployClaimFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(deployClaimFixture);
       let updatedProof: string[]|undefined;
       const updatedRewards = rewards.slice();
       const updatedRewardAmount = ethers.utils.parseEther(String(20));
@@ -608,7 +605,7 @@ describe('RewardPool', () => {
       time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, rewardCumulativeAmount);
+        .submitMerkleRoot(updatedRoot);
       const withdrawalAmount = ethers.utils.parseEther(String(20));
       await rewardPool
         .connect(addr2)
@@ -654,7 +651,7 @@ describe('RewardPool', () => {
 
     it("should not allow a rewardee to exceed their provided proof's allotted amount when withdrawing from an older proof and a newer proof", async () => {
       const { rewards, rewardPool, distributor, token, addr2 } = await loadFixture(deployInitialStateFixture);
-      const { rewardee, rewardAmount, rewardCumulativeAmount, proof } = await loadFixture(deployClaimFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(deployClaimFixture);
       let updatedProof: string[]|undefined;
       const updatedRewards = rewards.slice();
       const updatedRewardAmount = ethers.utils.parseEther(String(20));
@@ -672,7 +669,7 @@ describe('RewardPool', () => {
       time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, rewardCumulativeAmount);
+        .submitMerkleRoot(updatedRoot);
       await rewardPool
         .connect(addr2)
         .claim(
@@ -779,12 +776,11 @@ describe('RewardPool', () => {
         }
       }
       const root = tree.root;
-      const rewardCumulativeAmount = ethers.utils.parseEther(String(10000));
       time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, rewardCumulativeAmount);
-      return {rewardee, proof, rewardAmount, rewardCumulativeAmount}
+        .submitMerkleRoot(root);
+      return {rewardee, proof, rewardAmount}
       
     }
 

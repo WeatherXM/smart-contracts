@@ -46,8 +46,6 @@ contract RewardPool is
   address public companyTokensTarget;
   address public businessDevTokensTarget;
   uint256 public latestBusinessDevWithdrawal;
-  mapping(uint256 => uint256) public businessDevAllocatedTokens;
-  mapping(uint256 => uint256) public dailyAllocatedRewards;
   uint256 public latestCompanyWithdrawal;
 
   /* ========== ROLES ========== */
@@ -111,18 +109,12 @@ contract RewardPool is
    * @param root The root hash containing the cumulative rewards plus the daily rewards.
    * */
   function submitMerkleRoot(
-    bytes32 root,
-    uint256 dailyCumulativeRewards
+    bytes32 root
   ) external override onlyRole(DISTRIBUTOR_ROLE) rateLimit(1440 minutes) whenNotPaused returns (bool) {
-    if (totalAllocatedRewards.add(dailyCumulativeRewards).sub(claimedRewards) > token.balanceOf(address(this))) {
-      revert NotEnoughRewards();
-    }
     uint256 activeCycle = cycle;
     roots[activeCycle] = root;
-    dailyAllocatedRewards[activeCycle] = dailyCumulativeRewards;
-    totalAllocatedRewards = totalAllocatedRewards.add(dailyCumulativeRewards);
-    emit SubmittedRootHash(cycle, root);
     cycle++;
+    emit SubmittedRootHash(cycle, root);
     return true;
   }
 
