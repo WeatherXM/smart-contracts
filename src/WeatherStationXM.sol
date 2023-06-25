@@ -65,26 +65,6 @@ contract WeatherStationXM is
     _burn(tokenId);
   }
 
-  function transferWeatherStation(address to, uint256 tokenId) external override returns (bool) {
-    if (!_isApprovedOrOwner(_msgSender(), tokenId)) {
-      revert CantTransferWSWhenNotOwning();
-    }
-    safeTransferFrom(_msgSender(), to, tokenId);
-    emit WeatherStationTransfered(_msgSender(), to, tokenId);
-    return true;
-  }
-
-  function exchangeWeatherStations(uint256 _tokenId1, uint256 _tokenId2) external override returns (bool) {
-    if (ownerOf(_tokenId1) != _msgSender() || ownerOf(_tokenId2) != _msgSender()) {
-      revert CantExchangeWSWhenNotOwning();
-    }
-    address from = ownerOf(_tokenId1);
-    address to = ownerOf(_tokenId2);
-    safeTransferFrom(from, to, _tokenId1);
-    safeTransferFrom(to, from, _tokenId2);
-    return true;
-  }
-
   function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
     super._pause();
   }
@@ -104,11 +84,11 @@ contract WeatherStationXM is
 
   // The following functions are overrides required by Solidity.
   function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-    super._burn(tokenId);
+    ERC721URIStorage._burn(tokenId);
   }
 
   function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
-    return super.tokenURI(tokenId);
+    return ERC721URIStorage.tokenURI(tokenId);
   }
 
   function supportsInterface(

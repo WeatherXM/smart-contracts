@@ -38,10 +38,6 @@ interface IWeatherStationXM is IAccessControl, IERC721Enumerable {
 
   function burn(uint256 tokenId) external;
 
-  function transferWeatherStation(address to, uint256 tokenId) external returns (bool);
-
-  function exchangeWeatherStations(uint256 _tokenId1, uint256 _tokenId2) external returns (bool);
-
   //ops
   function pause() external;
 
