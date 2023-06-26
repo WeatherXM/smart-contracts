@@ -9,6 +9,8 @@ import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgr
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { IWeatherXM } from "./interfaces/IWeatherXM.sol";
 import { IServicePool } from "./interfaces/IServicePool.sol";
+//solhint-disable-next-line no-console
+import { console } from "forge-std/console.sol";
 
 /**
  * @title ServicePool contract.
@@ -30,9 +32,27 @@ contract ServicePool is
   using SafeMath for uint256;
   /* ========== STATE VARIABLES ========== */
   IWeatherXM private token;
+  IWeatherXM private USDC;
+  address public treasury;
 
   /* ========== ROLES ========== */
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+  bytes32 public constant SERVICE_MANAGER_ROLE = keccak256("SERVICE_MANAGER_ROLE");
+
+  /* ========== CUSTOM ERRORS ========== */
+  error AmountRequestedIsZero();
+  error InvalidServiceId();
+  error ServiceIdAlreadyExists();
+
+  modifier validService(string memory serviceId) {
+    if (
+      !(keccak256(abi.encodePacked(serviceIndex[serviceCatalog[serviceId].index])) ==
+        keccak256(abi.encodePacked(serviceId)))
+    ) {
+      revert InvalidServiceId();
+    }
+    _;
+  }
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
@@ -47,14 +67,15 @@ contract ServicePool is
     uint256 vpu;
   }
 
-  mapping(string  => Service) private serviceCatalog;
-  string[] private serviceIndex;
+  mapping(string => Service) public serviceCatalog;
+  string[] public serviceIndex;
+
   /**
    * @notice Initialize called on deployment, initiates the contract and its proxy.
    * @dev On deployment, some addresses for interacting contracts should be passed.
    * @param _token The address of WXM contract to be used for burning.
    * */
-  function initialize(address _token) public initializer {
+  function initialize(address _token, address _usdc, address _treasury) public initializer {
     __UUPSUpgradeable_init();
     __AccessControlEnumerable_init();
     __Pausable_init();
@@ -62,7 +83,10 @@ contract ServicePool is
 
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(UPGRADER_ROLE, _msgSender());
+    _setupRole(SERVICE_MANAGER_ROLE, _msgSender());
     token = IWeatherXM(_token);
+    USDC = IWeatherXM(_usdc);
+    treasury = _treasury;
   }
 
   /**
@@ -70,80 +94,124 @@ contract ServicePool is
    * @dev ERC-20 tokens require approval to be transfered.
    * The user should first approve an amount of WXM to be used by this contract.
    * Then the following fuction transfers tokens into the DAO revenue pool.
+   * When paying with WXM its up to the caller to specify the correct payment amount.
+   * Sending the wrong amount will consider the payment invalid
    * @param amount The amount to be transferred.
    * @param duration The duration for the service to purchase.
-   * @param serviceID The service identifier for the service to purchase.
+   * @param serviceId The service identifier for the service to purchase.
    * */
-  function purchaseService(uint256 amount, uint256 duration, string memory serviceID) external override whenNotPaused nonReentrant {
-    if (amount == 0) {
-      revert AmountRequestedIsZero();
-    }
+  function purchaseService(
+    uint256 amount,
+    uint256 duration,
+    string memory serviceId
+  ) external override whenNotPaused nonReentrant validService(serviceId) {
     // prior to this op is required that the user approves the _amount to be burned
     // by invoking the approve function of ERC20 contract
-    token.transferFrom(_msgSender(), address(this), amount);
-    emit PurchasedService(_msgSender(), amount, serviceID, duration);
+    token.transferFrom(_msgSender(), treasury, amount);
+    emit PurchasedService(_msgSender(), amount, serviceId, duration, address(token));
   }
 
-  function isService(string _serviceID) internal constant returns(bool) 
-  {
-    if(serviceIndex.length == 0) return false;
-    return (serviceIndex[serviceCatalog[_serviceID].index] == _serviceID);
+  /**
+   * @notice Transfer tokens and store info about the transaction.
+   * @dev ERC-20 tokens require approval to be transfered.
+   * The user should first approve an amount of WXM to be used by this contract.
+   * Then the following fuction transfers tokens into the DAO revenue pool.
+   * When paying with a stablecoin the amount is calculated on the contract
+   * @param duration The duration for the service to purchase.
+   * @param serviceId The service identifier for the service to purchase.
+   * */
+  function purchaseService(
+    uint256 duration,
+    string memory serviceId
+  ) external override whenNotPaused nonReentrant validService(serviceId) {
+    uint256 amount = duration * serviceCatalog[serviceId].vpu;
+    // prior to this op is required that the user approves the _amount to be burned
+    // by invoking the approve function of ERC20 contract
+    USDC.transferFrom(_msgSender(), treasury, amount);
+    emit PurchasedService(_msgSender(), amount, serviceId, duration, address(USDC));
   }
 
-  function getServiceAtIndex(uint _index) external returns(string serviceID){
+  function isService(string memory _serviceId) internal view returns (bool) {
+    if (serviceIndex.length == 0) return false;
+    return (keccak256(abi.encodePacked(serviceIndex[serviceCatalog[_serviceId].index])) ==
+      keccak256(abi.encodePacked(_serviceId)));
+  }
+
+  function getServiceAtIndex(uint _index) external view returns (string memory serviceId) {
     return serviceIndex[_index];
   }
 
-  function getServiceByID(string _serviceID) external override returns (string, string, uint256, uint256) {
-    return (serviceCatalog[_serviceID].index,
-            serviceCatalog[_serviceID].name, 
-            serviceCatalog[_serviceID].description, 
-            serviceCatalog[_serviceID].moq, 
-            serviceCatalog[_serviceID].vpu);
+  function getServiceByID(
+    string memory _serviceId
+  ) external view returns (uint256, string memory, string memory, uint256, uint256) {
+    return (
+      serviceCatalog[_serviceId].index,
+      serviceCatalog[_serviceId].name,
+      serviceCatalog[_serviceId].description,
+      serviceCatalog[_serviceId].moq,
+      serviceCatalog[_serviceId].vpu
+    );
   }
 
-  function addService(string _serviceID, string _name, string _description, uint256 _moq, uint256 _vpu) external override onlyRole(DEFAULT_ADMIN_ROLE) returns(uint256 index){
-    if(isService(_serviceID)) throw;
-    serviceCatalog[serviceID].name = _name;
-    serviceCatalog[serviceID].description = _description;
-    serviceCatalog[serviceID].moq = _moq;
-    serviceCatalog[serviceID].vpu = _vpu;
-    serviceCatalog[serviceID].index = serviceIndex.push(serviceID)-1
-    emit AddedService(_serviceID)
-    return serviceIndex.length-1;
+  function addService(
+    string memory _serviceId,
+    string memory _name,
+    string memory _description,
+    uint256 _moq,
+    uint256 _vpu
+  ) external override onlyRole(SERVICE_MANAGER_ROLE) returns (uint256 index) {
+    if (isService(_serviceId)) {
+      revert ServiceIdAlreadyExists();
+    }
+    serviceIndex.push(_serviceId);
+    serviceCatalog[_serviceId].name = _name;
+    serviceCatalog[_serviceId].description = _description;
+    serviceCatalog[_serviceId].moq = _moq;
+    serviceCatalog[_serviceId].vpu = _vpu;
+    serviceCatalog[_serviceId].index = serviceIndex.length - 1;
+    emit AddedService(_serviceId);
+    return serviceIndex.length - 1;
   }
 
-  function updateServiceVPU(string _serviceID, uint256 _vpu) external override onlyRole(DEFAULT_ADMIN_ROLE) returns(bool success) {
-    if(!isService(_serviceID)) throw; 
-    serviceCatalog[_serviceID].vpu = _vpu;
+  function updateServiceVPU(
+    string memory _serviceId,
+    uint256 _vpu
+  ) external onlyRole(SERVICE_MANAGER_ROLE) validService(_serviceId) returns (bool success) {
+    serviceCatalog[_serviceId].vpu = _vpu;
     emit UpdatedService(
-      _serviceID, 
-      serviceCatalog[_serviceID].index,
-      serviceCatalog[_serviceID].name,
-      serviceCatalog[_serviceID].vpu
-      );
+      _serviceId,
+      serviceCatalog[_serviceId].index,
+      serviceCatalog[_serviceId].name,
+      serviceCatalog[_serviceId].vpu
+    );
     return true;
   }
 
-  function deleteService(string _serviceID) external override onlyRole(DEFAULT_ADMIN_ROLE) returns(uint256 index){
-    if(!isService(_serviceID)) throw; 
-    uint indexToDelete = serviceCatalog[_serviceID].index;
-    address key = serviceIndex[serviceIndex.length-1];
-    serviceIndex[indexToDelete] = key;
-    serviceCatalog[key].index = indexToDelete; 
-    serviceIndex.length--;
-    emit DeleteService(_serviceID, indexToDelete);
-    emit UpdatedService(
-        key, 
-        indexToDelete, 
-        serviceCatalog[key].name, 
-        serviceCatalog[key].vpu);
-    return rowToDelete;
+  function deleteService(
+    string memory _serviceId
+  ) external override onlyRole(SERVICE_MANAGER_ROLE) validService(_serviceId) returns (uint256 index) {
+    uint indexToDelete = serviceCatalog[_serviceId].index;
+    serviceIndex[indexToDelete] = serviceIndex[serviceIndex.length - 1];
+    serviceCatalog[serviceIndex[indexToDelete]].index = indexToDelete;
+    serviceIndex.pop();
+    emit DeletedService(_serviceId, indexToDelete);
+
+    // If array length is 0 it means it only had one elemnt
+    if (serviceIndex.length > 0) {
+      emit UpdatedService(
+        serviceIndex[indexToDelete],
+        indexToDelete,
+        serviceCatalog[serviceIndex[indexToDelete]].name,
+        serviceCatalog[serviceIndex[indexToDelete]].vpu
+      );
+    }
+    return indexToDelete;
   }
-  
-  function getServiceCount() external override returns(uint256 count){
+
+  function getServiceCount() external view override returns (uint256 count) {
     return serviceIndex.length;
   }
+
   /**
    * @notice Pause all ops in ServicePool.
    * @dev Only the Admin can pause the smart contract.
