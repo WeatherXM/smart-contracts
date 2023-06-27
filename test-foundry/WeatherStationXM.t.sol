@@ -121,7 +121,7 @@ contract WeatherStationXMTest is Test {
         assertEq(weatherStationXM.totalSupply(), 1);
         vm.stopPrank();
         vm.startPrank(alice);
-        weatherStationXM.transferWeatherStation(bob, 1);
+        weatherStationXM.transferFrom(alice, bob, 1);
         vm.stopPrank();
     }
 
@@ -130,8 +130,8 @@ contract WeatherStationXMTest is Test {
         weatherStationXM.mintWeatherStation(alice, metadataURI);
         assertEq(weatherStationXM.balanceOf(alice), 1);
         assertEq(weatherStationXM.totalSupply(), 1);
-        vm.expectRevert(bytes4(keccak256("CantTransferWSWhenNotOwning()")));
-        weatherStationXM.transferWeatherStation(jack, 1);
+        vm.expectRevert("ERC721: caller is not token owner or approved");
+        weatherStationXM.transferFrom(bob, jack, 1);
         vm.stopPrank();
     }
 }

@@ -10,7 +10,8 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/securit
 import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import { IWeatherXM } from "./interfaces/IWeatherXM.sol";
 import { IRewardPool } from "./interfaces/IRewardPool.sol";
-import { IWeatherXMMintingManager } from "./interfaces/IWeatherXMMintingManager.sol";
+//solhint-disable-next-line no-console
+import { console } from "forge-std/console.sol";
 
 /**
  * @title RewardPool contract.
@@ -33,10 +34,10 @@ contract RewardPool is
 
   /* ========== STATE VARIABLES ========== */
   IWeatherXM public token;
-  IWeatherXMMintingManager public mintingManager;
   mapping(address => uint256) public claims;
   mapping(uint256 => bytes32) public roots;
 
+  uint256 public cycle;
   uint256 private rewardsEnabled;
   uint256 private companyEnabled;
   uint256 public totalAllocatedRewards;
@@ -45,8 +46,6 @@ contract RewardPool is
   address public companyTokensTarget;
   address public businessDevTokensTarget;
   uint256 public latestBusinessDevWithdrawal;
-  mapping(uint256 => uint256) public businessDevAllocatedTokens;
-  mapping(uint256 => uint256) public dailyAllocatedRewards;
   uint256 public latestCompanyWithdrawal;
 
   /* ========== ROLES ========== */
@@ -87,7 +86,7 @@ contract RewardPool is
     _disableInitializers();
   }
 
-  function initialize(address _token, address _mintingManager) public initializer {
+  function initialize(address _token) public initializer {
     __UUPSUpgradeable_init();
     __AccessControlEnumerable_init();
     __Pausable_init();
@@ -96,7 +95,6 @@ contract RewardPool is
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(UPGRADER_ROLE, _msgSender());
     token = IWeatherXM(_token);
-    mintingManager = IWeatherXMMintingManager(_mintingManager);
     rewardsEnabled = block.timestamp;
     companyEnabled = block.timestamp;
   }
@@ -111,18 +109,12 @@ contract RewardPool is
    * @param root The root hash containing the cumulative rewards plus the daily rewards.
    * */
   function submitMerkleRoot(
-    bytes32 root,
-    uint256 dailyCumulativeRewards
+    bytes32 root
   ) external override onlyRole(DISTRIBUTOR_ROLE) rateLimit(1440 minutes) whenNotPaused returns (bool) {
-    if (totalAllocatedRewards.add(dailyCumulativeRewards).sub(claimedRewards) > token.balanceOf(address(this))) {
-      revert NotEnoughRewards();
-    }
-    uint256 activeCycle = mintingManager.getCycle();
+    uint256 activeCycle = cycle;
     roots[activeCycle] = root;
-    dailyAllocatedRewards[activeCycle] = dailyCumulativeRewards;
-    totalAllocatedRewards = totalAllocatedRewards.add(dailyCumulativeRewards);
-    businessDevAllocatedTokens[activeCycle] = mintingManager.dailyRewardMint(activeCycle).sub(dailyCumulativeRewards);
-    emit SubmittedRootHash(mintingManager.getCycle(), root);
+    cycle++;
+    emit SubmittedRootHash(cycle, root);
     return true;
   }
 
@@ -130,16 +122,16 @@ contract RewardPool is
    * @notice Get remaining rewards to claim.
    * @param account The account of the recipient
    * @param amount The cumulative amount of rewards up to the selected cycle
-   * @param cycle cycle for which to choose the root hash
+   * @param _cycle cycle for which to choose the root hash
    * @param proof The recipient's proof
    * */
   function getRemainingAllocatedRewards(
     address account,
     uint256 amount,
-    uint256 cycle,
+    uint256 _cycle,
     bytes32[] calldata proof
   ) external view override whenNotPaused returns (uint256) {
-    return allocatedRewardsForProofMinusRewarded(account, amount, cycle, proof);
+    return allocatedRewardsForProofMinusRewarded(account, amount, _cycle, proof);
   }
 
   /**
@@ -147,19 +139,19 @@ contract RewardPool is
    * @dev Calculate available rewards to claim by substracting from cumultaive rewards the already claim.
    * @param account The account of the recipient
    * @param amount The cumulative amount of rewards up to the selected cycle
-   * @param cycle cycle for which to choose the root hash
+   * @param _cycle cycle for which to choose the root hash
    * @param proof The recipient's proof
    * */
   function allocatedRewardsForProofMinusRewarded(
     address account,
     uint256 amount,
-    uint256 cycle,
+    uint256 _cycle,
     bytes32[] calldata proof
   ) internal view returns (uint256) {
     if (amount == 0) {
       revert AmountRequestedIsZero();
     }
-    uint256 total = verify(account, amount, cycle, proof);
+    uint256 total = verify(account, amount, _cycle, proof);
     if (claims[account] < total) {
       return total.sub(claims[account]);
     } else {
@@ -174,14 +166,14 @@ contract RewardPool is
    * @param to The recipient's address
    * @param amount The amount to transfer (in WEI)
    * @param totalRewards The cumulative amount of rewards up to the point of the requested cycle
-   * @param cycle The desired cycle for which to choose the root hash
+   * @param _cycle The desired cycle for which to choose the root hash
    * @param proof The _proof that enables the claim of the requested amount of tokens
    * */
   function transferRewards(
     address to,
     uint256 amount,
     uint256 totalRewards,
-    uint256 cycle,
+    uint256 _cycle,
     bytes32[] calldata proof
   ) external override onlyRole(DISTRIBUTOR_ROLE) whenNotPaused nonReentrant validDestination(to) returns (bool) {
     if (totalRewards == 0) {
@@ -190,7 +182,7 @@ contract RewardPool is
     if (amount == 0) {
       revert AmountRequestedIsZero();
     }
-    if (amount > allocatedRewardsForProofMinusRewarded(to, totalRewards, cycle, proof)) {
+    if (amount > allocatedRewardsForProofMinusRewarded(to, totalRewards, _cycle, proof)) {
       revert AmountIsOverAvailableRewardsToWithdraw();
     }
     claims[to] = claims[to].add(amount);
@@ -202,81 +194,20 @@ contract RewardPool is
   }
 
   /**
-   * @notice Transfer tokens for vesting to a company pool.
-   * */
-  function transferCompanyTokens() external override onlyRole(DISTRIBUTOR_ROLE) whenNotPaused nonReentrant {
-    uint256 guard = mintingManager.getCycle();
-    if (latestCompanyWithdrawal > guard) {
-      revert ZeroTokensToTransfer();
-    }
-    uint256 sum;
-    uint256 i;
-    for (i = latestCompanyWithdrawal; i <= guard; ) {
-      sum = sum.add(mintingManager.dailyCompanyMint(i));
-      unchecked {
-        i++;
-      }
-    }
-    latestCompanyWithdrawal = i;
-    companyWithdrawals = companyWithdrawals.add(sum);
-    if (!token.transfer(companyTokensTarget, sum) || sum == 0) {
-      revert TransferFailed();
-    }
-    emit CompanyTokensTransferred(companyTokensTarget, sum);
-  }
-
-  /**
-   * @notice Transfer remaining tokens from daily rewarding to business development pool.
-   * */
-  function transferBusinessDevTokens() external override onlyRole(DISTRIBUTOR_ROLE) whenNotPaused nonReentrant {
-    uint256 guard = mintingManager.getCycle();
-    if (latestBusinessDevWithdrawal > guard) {
-      revert ZeroTokensToTransfer();
-    }
-    uint256 sum;
-    uint256 i;
-    for (i = latestBusinessDevWithdrawal; i <= guard; ) {
-      sum = sum.add(businessDevAllocatedTokens[i]);
-      unchecked {
-        i++;
-      }
-    }
-    latestBusinessDevWithdrawal = i;
-    if (!token.transfer(businessDevTokensTarget, sum) || sum == 0) {
-      revert TransferFailed();
-    }
-    emit BusinessDevTokensTransferred(businessDevTokensTarget, sum);
-  }
-
-  /**
-   * @notice Setup target address for receiving company and investors tokens.
-   * */
-  function setCompanyTarget(address target) external override onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
-    companyTokensTarget = target;
-  }
-
-  /**
-   * @notice Setup target address for receiving business development tokens.
-   * */
-  function setBusinessDevTarget(address target) external override onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
-    businessDevTokensTarget = target;
-  }
-
-  /**
    * @notice Verify proof for the chosen root hash.
    * @param account The account of the recipient
    * @param amount The cumulative amount of tokens
-   * @param cycle The desired cycle for which to choose the root hash
+   * @param _cycle The desired cycle for which to choose the root hash
    * @param proof The _proof that enables the claim of the requested amount of tokens
    * */
   function verify(
     address account,
     uint256 amount,
-    uint256 cycle,
+    uint256 _cycle,
     bytes32[] calldata proof
   ) internal view returns (uint256) {
     bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(account, amount))));
-    require(MerkleProof.verify(proof, roots[cycle], leaf), "INVALID PROOF");
+    require(MerkleProof.verify(proof, roots[_cycle], leaf), "INVALID PROOF");
     return amount;
   }
 
@@ -286,16 +217,16 @@ contract RewardPool is
    * The amount should be lower or equal to the available allocated to withdraw.
    * @param amount The amount of tokens to claim
    * @param totalRewards The cumulative amount of rewards up to the point of the requested cycle
-   * @param cycle The desired cycle for which to choose the root hash
+   * @param _cycle The desired cycle for which to choose the root hash
    * @param proof The _proof that enables the claim of the requested amount of tokens
    * */
   function claim(
     uint256 amount,
     uint256 totalRewards,
-    uint256 cycle,
+    uint256 _cycle,
     bytes32[] calldata proof
   ) external override whenNotPaused nonReentrant {
-    _handleDistributionWithProof(_msgSender(), amount, totalRewards, cycle, proof);
+    _handleDistributionWithProof(_msgSender(), amount, totalRewards, _cycle, proof);
     emit Claimed(_msgSender(), amount);
   }
 
@@ -306,14 +237,14 @@ contract RewardPool is
    * @param to The recipient's address
    * @param amount The amount to transfer (in WEI)
    * @param totalRewards The cumulative amount of rewards up to the point of the requested cycle
-   * @param cycle The desired cycle for which to choose the root hash
+   * @param _cycle The desired cycle for which to choose the root hash
    * @param proof The _proof that enables the claim of the requested amount of tokens
    * */
   function _handleDistributionWithProof(
     address to,
     uint256 amount,
     uint256 totalRewards,
-    uint256 cycle,
+    uint256 _cycle,
     bytes32[] calldata proof
   ) internal returns (bool) {
     if (totalRewards == 0) {
@@ -322,7 +253,7 @@ contract RewardPool is
     if (amount == 0) {
       revert AmountRequestedIsZero();
     }
-    if (amount > allocatedRewardsForProofMinusRewarded(_msgSender(), totalRewards, cycle, proof)) {
+    if (amount > allocatedRewardsForProofMinusRewarded(_msgSender(), totalRewards, _cycle, proof)) {
       revert AmountIsOverAvailableRewardsToWithdraw();
     }
     claims[to] = claims[to].add(amount);

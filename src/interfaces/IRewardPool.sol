@@ -38,7 +38,7 @@ interface IRewardPool {
   event BusinessDevTokensTransferred(address indexed to, uint256 amount);
 
   //root hash submission
-  function submitMerkleRoot(bytes32 root, uint256 dailyTotalRewards) external returns (bool);
+  function submitMerkleRoot(bytes32 root) external returns (bool);
 
   // transfer functions
   function transferRewards(
@@ -49,15 +49,6 @@ interface IRewardPool {
     bytes32[] calldata proof
   ) external returns (bool);
 
-  function transferCompanyTokens() external;
-
-  function transferBusinessDevTokens() external;
-
-  // set addresses for business development pool and company pool
-  function setCompanyTarget(address target) external;
-
-  function setBusinessDevTarget(address target) external;
-
   // user functions
   function claim(uint256 amount, uint256 totalRewards, uint256 cycle, bytes32[] calldata proof) external;
 
@@ -67,6 +58,8 @@ interface IRewardPool {
     uint256 cycle,
     bytes32[] calldata proof
   ) external view returns (uint256);
+
+  function cycle() external returns (uint256);
 
   // ops
   function pause() external;
