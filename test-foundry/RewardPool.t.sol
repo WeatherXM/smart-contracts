@@ -160,7 +160,7 @@ contract RewardPoolTest is Test {
     );
     vm.stopPrank();
     vm.startPrank(_address);
-    vm.expectRevert();
+    vm.expectRevert(bytes("INVALID PROOF"));
     wrappedProxyV1.claim(remainingBalance, 10000000000000000000, 1, _proof);
     vm.stopPrank();
   }
@@ -217,7 +217,7 @@ contract RewardPoolTest is Test {
     );
     uint256 balance = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
     assertEq(1000000000000000000, balance);
-    vm.stopPrank();    
+    vm.stopPrank();
   }
 
   function testTransferRewardsFuzz(uint256 amount) public {
@@ -233,8 +233,17 @@ contract RewardPoolTest is Test {
       emit log_bytes(proofsEncoded[0].toList()[j].toBytes());
       _proof[j] = bytes32(proofsEncoded[0].toList()[j].toBytes());
     }
-    if (amount > 10000000000000000000 || amount == 0) {
-      vm.expectRevert();
+    if (amount == 0) {
+      vm.expectRevert(IRewardPool.AmountRequestedIsZero.selector);
+      wrappedProxyV1.transferRewards(
+        bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
+        amount,
+        10000000000000000000,
+        0,
+        _proof
+      );
+    } else if (amount > 10000000000000000000) {
+      vm.expectRevert(IRewardPool.AmountIsOverAvailableRewardsToClaim.selector);
       wrappedProxyV1.transferRewards(
         bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
         amount,
@@ -253,7 +262,7 @@ contract RewardPoolTest is Test {
       uint256 balance = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
       assertEq(amount, balance);
     }
-    vm.stopPrank();    
+    vm.stopPrank();
   }
 
   function testCompatabilityOpenZeppelinProver(bytes32[] memory _data, uint256 node) public {
