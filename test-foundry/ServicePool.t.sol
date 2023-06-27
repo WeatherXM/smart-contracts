@@ -67,25 +67,24 @@ contract ServicePoolTest is Test {
 
   function testAddService() public {
     vm.startPrank(owner);
-    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1", 20, 100);
     assertEq(addedAtIndex, 0);
-    (uint256 index, string memory name, string memory desc, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
+    (uint256 index, string memory name, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
       "serviceId1"
     );
 
     assertEq(index, 0);
     assertEq(name, "service1");
-    assertEq(desc, "service1Desc");
     assertEq(moq, 20);
     assertEq(vpu, 100);
   }
 
   function testAddDuplicateService() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1", 20, 100);
 
-    vm.expectRevert(ServicePool.ServiceIdAlreadyExists.selector);
-    servicePool.addService("serviceId1", "service2", "service2Desc", 20, 100);
+    vm.expectRevert(IServicePool.ServiceIdAlreadyExists.selector);
+    servicePool.addService("serviceId1", "service2", 20, 100);
   }
 
   function testAddServiceWithoutRole() public {
@@ -94,20 +93,19 @@ contract ServicePoolTest is Test {
     vm.expectRevert(
       "AccessControl: account 0x0000000000000000000000000000000000000002 is missing role 0x09717ac20005278352439ebfe1b489a0fa1eccb8e4f93830ef8886bb58ec7bc5"
     );
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1", 20, 100);
   }
 
   function testUpdateServiceVpu() public {
     vm.startPrank(owner);
-    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1", 20, 100);
     assertEq(addedAtIndex, 0);
-    (uint256 index, string memory name, string memory desc, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
+    (uint256 index, string memory name, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
       "serviceId1"
     );
 
     assertEq(index, 0);
     assertEq(name, "service1");
-    assertEq(desc, "service1Desc");
     assertEq(moq, 20);
     assertEq(vpu, 100);
 
@@ -116,29 +114,26 @@ contract ServicePoolTest is Test {
     (
       uint256 indexAfterUpdate,
       string memory nameAfterUpdate,
-      string memory descAfterUpdate,
       uint256 moqAfterUpdate,
       uint256 vpuAfterUpdate
     ) = servicePool.getServiceByID("serviceId1");
 
     assertEq(index, indexAfterUpdate);
     assertEq(name, nameAfterUpdate);
-    assertEq(desc, descAfterUpdate);
     assertEq(moq, moqAfterUpdate);
     assertEq(vpuAfterUpdate, 30);
   }
 
   function testUpdateServiceVpuWithoutRole() public {
     vm.startPrank(owner);
-    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1",  20, 100);
     assertEq(addedAtIndex, 0);
-    (uint256 index, string memory name, string memory desc, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
+    (uint256 index, string memory name, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
       "serviceId1"
     );
 
     assertEq(index, 0);
     assertEq(name, "service1");
-    assertEq(desc, "service1Desc");
     assertEq(moq, 20);
     assertEq(vpu, 100);
 
@@ -153,14 +148,12 @@ contract ServicePoolTest is Test {
     (
       uint256 indexAfterUpdate,
       string memory nameAfterUpdate,
-      string memory descAfterUpdate,
       uint256 moqAfterUpdate,
       uint256 vpuAfterUpdate
     ) = servicePool.getServiceByID("serviceId1");
 
     assertEq(index, indexAfterUpdate);
     assertEq(name, nameAfterUpdate);
-    assertEq(desc, descAfterUpdate);
     assertEq(moq, moqAfterUpdate);
     assertEq(vpu, vpuAfterUpdate);
 
@@ -169,35 +162,116 @@ contract ServicePoolTest is Test {
 
   function testUpdateNonExistentService() public {
     vm.startPrank(owner);
-    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1",  20, 100);
     assertEq(addedAtIndex, 0);
-    (uint256 index, string memory name, string memory desc, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
+    (uint256 index, string memory name, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
       "serviceId1"
     );
 
     assertEq(index, 0);
     assertEq(name, "service1");
-    assertEq(desc, "service1Desc");
     assertEq(moq, 20);
     assertEq(vpu, 100);
 
-    vm.expectRevert(ServicePool.InvalidServiceId.selector);
+    vm.expectRevert(IServicePool.InvalidServiceId.selector);
     servicePool.updateServiceVPU("serviceId2", 30);
+
+    vm.stopPrank();
+  }
+
+  function testUpdateServiceMoq() public {
+    vm.startPrank(owner);
+    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1", 20, 100);
+    assertEq(addedAtIndex, 0);
+    (uint256 index, string memory name, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
+      "serviceId1"
+    );
+
+    assertEq(index, 0);
+    assertEq(name, "service1");
+    assertEq(moq, 20);
+    assertEq(vpu, 100);
+
+    servicePool.updateServiceMOQ("serviceId1", 30);
+
+    (
+      uint256 indexAfterUpdate,
+      string memory nameAfterUpdate,
+      uint256 moqAfterUpdate,
+      uint256 vpuAfterUpdate
+    ) = servicePool.getServiceByID("serviceId1");
+
+    assertEq(index, indexAfterUpdate);
+    assertEq(name, nameAfterUpdate);
+    assertEq(moqAfterUpdate, 30);
+    assertEq(vpu, vpuAfterUpdate);
+  }
+
+  function testUpdateServiceMoqWithoutRole() public {
+    vm.startPrank(owner);
+    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1",  20, 100);
+    assertEq(addedAtIndex, 0);
+    (uint256 index, string memory name, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
+      "serviceId1"
+    );
+
+    assertEq(index, 0);
+    assertEq(name, "service1");
+    assertEq(moq, 20);
+    assertEq(vpu, 100);
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    vm.expectRevert(
+      "AccessControl: account 0x0000000000000000000000000000000000000002 is missing role 0x09717ac20005278352439ebfe1b489a0fa1eccb8e4f93830ef8886bb58ec7bc5"
+    );
+    servicePool.updateServiceMOQ("serviceId1", 30);
+
+    (
+      uint256 indexAfterUpdate,
+      string memory nameAfterUpdate,
+      uint256 moqAfterUpdate,
+      uint256 vpuAfterUpdate
+    ) = servicePool.getServiceByID("serviceId1");
+
+    assertEq(index, indexAfterUpdate);
+    assertEq(name, nameAfterUpdate);
+    assertEq(moq, moqAfterUpdate);
+    assertEq(vpu, vpuAfterUpdate);
+
+    vm.stopPrank();
+  }
+
+  function testUpdateMOQNonExistentService() public {
+    vm.startPrank(owner);
+    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1",  20, 100);
+    assertEq(addedAtIndex, 0);
+    (uint256 index, string memory name, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
+      "serviceId1"
+    );
+
+    assertEq(index, 0);
+    assertEq(name, "service1");
+    assertEq(moq, 20);
+    assertEq(vpu, 100);
+
+    vm.expectRevert(IServicePool.InvalidServiceId.selector);
+    servicePool.updateServiceMOQ("serviceId2", 30);
 
     vm.stopPrank();
   }
 
   function testDeleteService() public {
     vm.startPrank(owner);
-    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    uint256 addedAtIndex = servicePool.addService("serviceId1", "service1",  20, 100);
     assertEq(addedAtIndex, 0);
-    (uint256 index, string memory name, string memory desc, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
+    (uint256 index, string memory name, uint256 moq, uint256 vpu) = servicePool.getServiceByID(
       "serviceId1"
     );
 
     assertEq(index, 0);
     assertEq(name, "service1");
-    assertEq(desc, "service1Desc");
     assertEq(moq, 20);
     assertEq(vpu, 100);
 
@@ -214,9 +288,9 @@ contract ServicePoolTest is Test {
 
   function testDeleteServiceWhenMoreServicesExist() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 10, 100);
-    servicePool.addService("serviceId2", "service2", "service2Desc", 20, 200);
-    servicePool.addService("serviceId3", "service3", "service3Desc", 30, 300);
+    servicePool.addService("serviceId1", "service1", 10, 100);
+    servicePool.addService("serviceId2", "service2", 20, 200);
+    servicePool.addService("serviceId3", "service3", 30, 300);
 
     uint256 servicesCount = servicePool.getServiceCount();
     assertEq(servicesCount, 3);
@@ -226,23 +300,21 @@ contract ServicePoolTest is Test {
     uint256 servicesCountAfterDelete = servicePool.getServiceCount();
     assertEq(servicesCountAfterDelete, 2);
 
-    (uint256 index1, string memory name1, string memory desc1, uint256 moq1, uint256 vpu1) = servicePool.getServiceByID(
+    (uint256 index1, string memory name1, uint256 moq1, uint256 vpu1) = servicePool.getServiceByID(
       "serviceId1"
     );
 
     assertEq(index1, 0);
     assertEq(name1, "service1");
-    assertEq(desc1, "service1Desc");
     assertEq(moq1, 10);
     assertEq(vpu1, 100);
 
-    (uint256 index3, string memory name3, string memory desc3, uint256 moq3, uint256 vpu3) = servicePool.getServiceByID(
+    (uint256 index3, string memory name3, uint256 moq3, uint256 vpu3) = servicePool.getServiceByID(
       "serviceId3"
     );
 
     assertEq(index3, 1);
     assertEq(name3, "service3");
-    assertEq(desc3, "service3Desc");
     assertEq(moq3, 30);
     assertEq(vpu3, 300);
 
@@ -251,7 +323,7 @@ contract ServicePoolTest is Test {
 
   function testDeleteServiceWithoutRole() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1",  20, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -266,9 +338,9 @@ contract ServicePoolTest is Test {
 
   function testDeleteServiceNonExistent() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1",  20, 100);
 
-    vm.expectRevert(ServicePool.InvalidServiceId.selector);
+    vm.expectRevert(IServicePool.InvalidServiceId.selector);
     servicePool.deleteService("serviceId2");
 
     vm.stopPrank();
@@ -276,7 +348,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceWXM() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1",  20, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -297,7 +369,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceWXMNotEnoughBalance() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1",  20, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -313,7 +385,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceWXMNotEnoughAllowance() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1",  20, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -329,7 +401,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceWXMInvalidService() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1",  20, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -337,7 +409,7 @@ contract ServicePoolTest is Test {
     wxm.mint(1000);
     wxm.approve(address(servicePool), 800);
 
-    vm.expectRevert(ServicePool.InvalidServiceId.selector);
+    vm.expectRevert(IServicePool.InvalidServiceId.selector);
     servicePool.purchaseService(800, 10, "serviceId2");
 
     vm.stopPrank();
@@ -345,7 +417,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceStableCoin() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 5, 100);
+    servicePool.addService("serviceId1", "service1",  5, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -366,7 +438,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceStableCoinNotEnoughBalance() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 5, 100);
+    servicePool.addService("serviceId1", "service1",  5, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -382,7 +454,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceStableCoinNotEnoughAllowance() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1",  20, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -398,7 +470,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceStableCoinInvalidService() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1",  20, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -406,7 +478,7 @@ contract ServicePoolTest is Test {
     usdc.mint(1000);
     usdc.approve(address(servicePool), 800);
 
-    vm.expectRevert(ServicePool.InvalidServiceId.selector);
+    vm.expectRevert(IServicePool.InvalidServiceId.selector);
     servicePool.purchaseService(8, "serviceId2");
 
     vm.stopPrank();
@@ -430,7 +502,7 @@ contract ServicePoolTest is Test {
 
   function testSetBasePaymentTokenAndPurchase() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+    servicePool.addService("serviceId1", "service1",  20, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);

@@ -14,10 +14,10 @@ import { IServicePool } from "./interfaces/IServicePool.sol";
 /**
  * @title ServicePool contract.
  *
- * @notice This contract accounts burning WXM tokens for getting services.
+ * @notice This contract accounts for transferring WXM or another ERC20 tokens for getting services.
  *
- * @dev The owner of the contract can view who burnt already and for which service.
- * Anyone can burn tokens from his account based upon previous approval.
+ * @dev The owner of the contract can view who transferred already and for which service.
+ * Anyone can transfer tokens from his account based upon previous approval into the DAO revenue pool.
  * */
 contract ServicePool is
   Initializable,
@@ -38,11 +38,6 @@ contract ServicePool is
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
   bytes32 public constant SERVICE_MANAGER_ROLE = keccak256("SERVICE_MANAGER_ROLE");
 
-  /* ========== CUSTOM ERRORS ========== */
-  error AmountRequestedIsZero();
-  error InvalidServiceId();
-  error ServiceIdAlreadyExists();
-
   modifier validService(string memory serviceId) {
     if (!_isService(serviceId)) {
       revert InvalidServiceId();
@@ -58,7 +53,6 @@ contract ServicePool is
   struct Service {
     uint256 index;
     string name;
-    string description;
     uint256 moq;
     uint256 vpu;
   }
@@ -86,7 +80,7 @@ contract ServicePool is
   }
 
   /**
-   * @notice Transfer tokens and store info about the transaction.
+   * @notice Purchase a service from the DAO Service Catalog
    * @dev ERC-20 tokens require approval to be transfered.
    * The user should first approve an amount of WXM to be used by this contract.
    * Then the following fuction transfers tokens into the DAO revenue pool.
@@ -101,7 +95,7 @@ contract ServicePool is
     uint256 duration,
     string memory serviceId
   ) external override whenNotPaused nonReentrant validService(serviceId) {
-    // prior to this op is required that the user approves the _amount to be burned
+    // prior to this op is required that the user approves the _amount to be transferred
     // by invoking the approve function of ERC20 contract
     wxm.transferFrom(_msgSender(), treasury, amount);
     emit PurchasedService(_msgSender(), amount, serviceId, duration, address(wxm));
@@ -127,32 +121,48 @@ contract ServicePool is
     emit PurchasedService(_msgSender(), amount, serviceId, duration, address(basePaymentToken));
   }
 
+  /**
+   * @notice Evaluate whether the service exists in the catalog or not.
+   * @param _serviceId The service identifier for the service to be evaluated.
+   */
   function _isService(string memory _serviceId) internal view returns (bool) {
     if (serviceIndex.length == 0) return false;
     return (keccak256(abi.encodePacked(serviceIndex[serviceCatalog[_serviceId].index])) ==
       keccak256(abi.encodePacked(_serviceId)));
   }
 
+  /**
+   * @notice Get a service identifier by using its index.
+   * @param _index THe service's index into the serviceIndex array.
+   *
+   */
   function getServiceAtIndex(uint _index) external view returns (string memory serviceId) {
     return serviceIndex[_index];
   }
 
-  function getServiceByID(
-    string memory _serviceId
-  ) external view returns (uint256, string memory, string memory, uint256, uint256) {
+  /**
+   * @notice Get the service info (index, name, moq, vpu) by using its identifier.
+   * @param _serviceId The service intefier.
+   */
+  function getServiceByID(string memory _serviceId) external view returns (uint256, string memory, uint256, uint256) {
     return (
       serviceCatalog[_serviceId].index,
       serviceCatalog[_serviceId].name,
-      serviceCatalog[_serviceId].description,
       serviceCatalog[_serviceId].moq,
       serviceCatalog[_serviceId].vpu
     );
   }
 
+  /**
+   * @notice Add a new service into the service catalog.
+   * @param _serviceId The service identifier.
+   * @param _name The service name.
+   * @param _moq The minimum order quantity which can be charged.
+   * @param _vpu The value per unit which is charged. The unit is the moq.
+   */
   function addService(
     string memory _serviceId,
     string memory _name,
-    string memory _description,
     uint256 _moq,
     uint256 _vpu
   ) external override onlyRole(SERVICE_MANAGER_ROLE) returns (uint256 index) {
@@ -161,7 +171,6 @@ contract ServicePool is
     }
     serviceIndex.push(_serviceId);
     serviceCatalog[_serviceId].name = _name;
-    serviceCatalog[_serviceId].description = _description;
     serviceCatalog[_serviceId].moq = _moq;
     serviceCatalog[_serviceId].vpu = _vpu;
     serviceCatalog[_serviceId].index = serviceIndex.length - 1;
@@ -169,6 +178,11 @@ contract ServicePool is
     return serviceIndex.length - 1;
   }
 
+  /**
+   * @notice Update the value per unit in each service.
+   * @param _serviceId The service identifier.
+   * @param _vpu The new value per unit for the service.
+   */
   function updateServiceVPU(
     string memory _serviceId,
     uint256 _vpu
@@ -183,6 +197,29 @@ contract ServicePool is
     return true;
   }
 
+  /**
+   * @notice Update the minimum order quantity in each service.
+   * @param _serviceId The service identifier.
+   * @param _moq The new minimum order quantity for the service.
+   */
+  function updateServiceMOQ(
+    string memory _serviceId,
+    uint256 _moq
+  ) external onlyRole(SERVICE_MANAGER_ROLE) validService(_serviceId) returns (bool success) {
+    serviceCatalog[_serviceId].moq = _moq;
+    emit UpdatedService(
+      _serviceId,
+      serviceCatalog[_serviceId].index,
+      serviceCatalog[_serviceId].name,
+      serviceCatalog[_serviceId].moq
+    );
+    return true;
+  }
+
+  /**
+   * @notice Delete a service from the catalog.
+   * @param _serviceId The service identifier of the service to delete.
+   */
   function deleteService(
     string memory _serviceId
   ) external override onlyRole(SERVICE_MANAGER_ROLE) validService(_serviceId) returns (uint256 index) {
@@ -204,10 +241,17 @@ contract ServicePool is
     return indexToDelete;
   }
 
+  /**
+   * @notice Get the number of services existing in the catalog.
+   */
   function getServiceCount() external view override returns (uint256 count) {
     return serviceIndex.length;
   }
 
+  /**
+   * @notice Set the base ERC20 token.
+   * @param _basePaymentToken The contract address of the chosen ERC20 token.
+   */
   function setBasePaymentToken(address _basePaymentToken) external onlyRole(SERVICE_MANAGER_ROLE) {
     basePaymentToken = IERC20(_basePaymentToken);
   }
