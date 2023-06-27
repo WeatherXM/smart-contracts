@@ -20,6 +20,7 @@ import { console } from "forge-std/console.sol";
 contract ServicePoolTest is Test {
   MintableERC20 public wxm;
   MintableERC20 public usdc;
+  MintableERC20 public usdt;
   IServicePool public servicePoolImplementation;
   IWeatherStationXM public weatherStationXM;
   address internal alice;
@@ -40,6 +41,7 @@ contract ServicePoolTest is Test {
   function setUp() external {
     wxm = new MintableERC20("WeatherXM", "WXM");
     usdc = new MintableERC20("USDC", "USDC");
+    usdt = new MintableERC20("USDC", "USDC");
     owner = address(0x1);
     vm.label(owner, "Owner");
     alice = address(0x2);
@@ -406,6 +408,70 @@ contract ServicePoolTest is Test {
 
     vm.expectRevert(ServicePool.InvalidServiceId.selector);
     servicePool.purchaseService(8, "serviceId2");
+
+    vm.stopPrank();
+  }
+
+  function testSetBasePaymentToken() public {
+    vm.startPrank(owner);
+
+    address basePaymentToken = address(servicePool.basePaymentToken());
+
+    assertEq(basePaymentToken, address(usdc));
+
+    servicePool.setBasePaymentToken(address(usdt));
+
+    address basePaymentTokenAfterUpdate = address(servicePool.basePaymentToken());
+
+    assertEq(basePaymentTokenAfterUpdate, address(usdt));
+
+    vm.stopPrank();
+  }
+
+  function testSetBasePaymentTokenAndPurchase() public {
+    vm.startPrank(owner);
+    servicePool.addService("serviceId1", "service1", "service1Desc", 20, 100);
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+    
+    usdc.mint(1000);
+    usdc.approve(address(servicePool), 800);
+
+    servicePool.purchaseService(8, "serviceId1");
+
+    uint256 aliceBalance = usdc.balanceOf(alice);
+    uint256 treasuryBalance = usdc.balanceOf(treasury);
+
+    assertEq(aliceBalance, 200);
+    assertEq(treasuryBalance, 800);
+
+    usdt.mint(1000);
+    usdt.approve(address(servicePool), 800);
+
+    vm.expectRevert("ERC20: insufficient allowance");
+    servicePool.purchaseService(8, "serviceId1");
+
+    vm.stopPrank();
+    vm.startPrank(owner);
+
+    servicePool.setBasePaymentToken(address(usdt));
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    servicePool.purchaseService(8, "serviceId1");
+
+    vm.stopPrank();
+  }
+
+  function testSetBasePaymentTokenWithoutRole() public {
+    vm.startPrank(alice);
+
+    vm.expectRevert(
+      "AccessControl: account 0x0000000000000000000000000000000000000002 is missing role 0x09717ac20005278352439ebfe1b489a0fa1eccb8e4f93830ef8886bb58ec7bc5"
+    );
+    servicePool.setBasePaymentToken(address(usdt));
 
     vm.stopPrank();
   }

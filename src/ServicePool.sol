@@ -7,10 +7,9 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IWeatherXM } from "./interfaces/IWeatherXM.sol";
 import { IServicePool } from "./interfaces/IServicePool.sol";
-//solhint-disable-next-line no-console
-import { console } from "forge-std/console.sol";
 
 /**
  * @title ServicePool contract.
@@ -31,8 +30,8 @@ contract ServicePool is
   /* ========== LIBRARIES ========== */
   using SafeMath for uint256;
   /* ========== STATE VARIABLES ========== */
-  IWeatherXM private token;
-  IWeatherXM private USDC;
+  IWeatherXM public wxm;
+  IERC20 public basePaymentToken;
   address public treasury;
 
   /* ========== ROLES ========== */
@@ -45,10 +44,7 @@ contract ServicePool is
   error ServiceIdAlreadyExists();
 
   modifier validService(string memory serviceId) {
-    if (
-      !(keccak256(abi.encodePacked(serviceIndex[serviceCatalog[serviceId].index])) ==
-        keccak256(abi.encodePacked(serviceId)))
-    ) {
+    if (!_isService(serviceId)) {
       revert InvalidServiceId();
     }
     _;
@@ -73,9 +69,9 @@ contract ServicePool is
   /**
    * @notice Initialize called on deployment, initiates the contract and its proxy.
    * @dev On deployment, some addresses for interacting contracts should be passed.
-   * @param _token The address of WXM contract to be used for burning.
+   * @param _wxm The address of WXM contract to be used for burning.
    * */
-  function initialize(address _token, address _usdc, address _treasury) public initializer {
+  function initialize(address _wxm, address _basePaymentToken, address _treasury) public initializer {
     __UUPSUpgradeable_init();
     __AccessControlEnumerable_init();
     __Pausable_init();
@@ -84,8 +80,8 @@ contract ServicePool is
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(UPGRADER_ROLE, _msgSender());
     _setupRole(SERVICE_MANAGER_ROLE, _msgSender());
-    token = IWeatherXM(_token);
-    USDC = IWeatherXM(_usdc);
+    wxm = IWeatherXM(_wxm);
+    basePaymentToken = IERC20(_basePaymentToken);
     treasury = _treasury;
   }
 
@@ -107,8 +103,8 @@ contract ServicePool is
   ) external override whenNotPaused nonReentrant validService(serviceId) {
     // prior to this op is required that the user approves the _amount to be burned
     // by invoking the approve function of ERC20 contract
-    token.transferFrom(_msgSender(), treasury, amount);
-    emit PurchasedService(_msgSender(), amount, serviceId, duration, address(token));
+    wxm.transferFrom(_msgSender(), treasury, amount);
+    emit PurchasedService(_msgSender(), amount, serviceId, duration, address(wxm));
   }
 
   /**
@@ -127,11 +123,11 @@ contract ServicePool is
     uint256 amount = duration * serviceCatalog[serviceId].vpu;
     // prior to this op is required that the user approves the _amount to be burned
     // by invoking the approve function of ERC20 contract
-    USDC.transferFrom(_msgSender(), treasury, amount);
-    emit PurchasedService(_msgSender(), amount, serviceId, duration, address(USDC));
+    basePaymentToken.transferFrom(_msgSender(), treasury, amount);
+    emit PurchasedService(_msgSender(), amount, serviceId, duration, address(basePaymentToken));
   }
 
-  function isService(string memory _serviceId) internal view returns (bool) {
+  function _isService(string memory _serviceId) internal view returns (bool) {
     if (serviceIndex.length == 0) return false;
     return (keccak256(abi.encodePacked(serviceIndex[serviceCatalog[_serviceId].index])) ==
       keccak256(abi.encodePacked(_serviceId)));
@@ -160,7 +156,7 @@ contract ServicePool is
     uint256 _moq,
     uint256 _vpu
   ) external override onlyRole(SERVICE_MANAGER_ROLE) returns (uint256 index) {
-    if (isService(_serviceId)) {
+    if (_isService(_serviceId)) {
       revert ServiceIdAlreadyExists();
     }
     serviceIndex.push(_serviceId);
@@ -210,6 +206,10 @@ contract ServicePool is
 
   function getServiceCount() external view override returns (uint256 count) {
     return serviceIndex.length;
+  }
+
+  function setBasePaymentToken(address _basePaymentToken) external onlyRole(SERVICE_MANAGER_ROLE) {
+    basePaymentToken = IERC20(_basePaymentToken);
   }
 
   /**
