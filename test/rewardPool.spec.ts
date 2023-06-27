@@ -439,7 +439,7 @@ describe('RewardPool', () => {
         rewardPool
           .connect(addr2)
           .claim(withdrawalAmount, rewardAmount, 0, proof)
-      ).to.be.revertedWithCustomError(rewardPool, "AmountIsOverAvailableRewardsToWithdraw");
+      ).to.be.revertedWithCustomError(rewardPool, "AmountIsOverAvailableRewardsToClaim");
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
       const claims = await rewardPool.claims(rewardee);

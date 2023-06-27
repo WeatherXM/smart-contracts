@@ -6,14 +6,11 @@ interface IRewardPool {
    * @dev Custom errors
    */
   error RewardsRateLimitingInEffect();
-  error NotEnoughRewards();
   error CallerShouldNotBeThisContract();
   error AmountRequestedIsZero();
-  error BalanceIsNotEnough();
   error TotalRewardsAreZero();
-  error AmountIsOverAvailableRewardsToWithdraw();
+  error AmountIsOverAvailableRewardsToClaim();
   error TransferFailed();
-  error ZeroTokensToTransfer();
   error TargetAddressIsZero();
   error TargetAddressIsContractAddress();
   /**
