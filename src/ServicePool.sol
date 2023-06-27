@@ -16,8 +16,6 @@ import { IServicePool } from "./interfaces/IServicePool.sol";
  *
  * @notice This contract accounts for transferring WXM or another ERC20 tokens for getting services.
  *
- * @dev The owner of the contract can view who transferred already and for which service.
- * Anyone can transfer tokens from his account based upon previous approval into the DAO revenue pool.
  * */
 contract ServicePool is
   Initializable,
