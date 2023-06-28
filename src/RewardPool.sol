@@ -52,6 +52,14 @@ contract RewardPool is
   bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
+  struct RequestedClaim {
+    uint amount;
+    uint time;
+  }
+  mapping(address => uint) private claimedAmountRequest;
+  mapping(address => RequestedClaim) private requestedClaims;
+  uint claimWaitPeriod;
+
   /**
    * @notice Rate limit for submitting root hashes.
    * @dev Every 24h is the minimum limit for submitting root hashes for rewards
@@ -63,6 +71,13 @@ contract RewardPool is
       revert RewardsRateLimitingInEffect();
     }
     rewardsEnabled = rewardsEnabled.add(period);
+    _;
+  }
+
+  modifier requestClaimExists() {
+    if (requestedClaims[_msgSender()].amount == 0) {
+      revert NoRequestClaim();
+    }
     _;
   }
 
@@ -97,6 +112,7 @@ contract RewardPool is
     token = IWeatherXM(_token);
     rewardsEnabled = block.timestamp;
     companyEnabled = block.timestamp;
+    claimWaitPeriod = 30 minutes;
   }
 
   /**
@@ -212,56 +228,52 @@ contract RewardPool is
   }
 
   /**
-   * @notice Claim rewards.
-   * @dev Anyone can claim own rewards by submitting the amount and a proof.
+   * @notice Request Claim Rewards
+   * @dev Anyone can claim own rewards by submitting a request amount and a proof.
    * The amount should be lower or equal to the available allocated to withdraw.
-   * @param amount The amount of tokens to claim
-   * @param totalRewards The cumulative amount of rewards up to the point of the requested cycle
-   * @param _cycle The desired cycle for which to choose the root hash
-   * @param proof The _proof that enables the claim of the requested amount of tokens
-   * */
-  function claim(
-    uint256 amount,
-    uint256 totalRewards,
-    uint256 _cycle,
-    bytes32[] calldata proof
-  ) external override whenNotPaused nonReentrant {
-    _handleDistributionWithProof(_msgSender(), amount, totalRewards, _cycle, proof);
-    emit Claimed(_msgSender(), amount);
+   * @param _amount The amount of tokens to claim.
+   * @param _totalRewards The cumulative amount of rewards up to the point of the requested cycle.
+   * @param _cycle The desired cycle for which to choose the root hash.
+   * @param proof The _proof that enables the claim of the requested amount of tokens.
+   */
+  function requestClaim(uint256 _amount, uint256 _totalRewards, uint256 _cycle, bytes32[] calldata proof) external {
+    if (_totalRewards == 0) {
+      revert TotalRewardsAreZero();
+    }
+    if (_amount == 0) {
+      revert AmountRequestedIsZero();
+    }
+    if (_amount > allocatedRewardsForProofMinusRewarded(_msgSender(), _totalRewards, _cycle, proof)) {
+      revert AmountIsOverAvailableRewardsToClaim();
+    }
+    requestedClaims[_msgSender()] = RequestedClaim({ amount: _amount, time: block.timestamp });
   }
 
   /**
-   * @notice Transfer rewards to a recipient.
-   * @dev Receives the amount and proof for a specific recipient defined by the address and transfers the rewards.
-   * The amount should be lower or equal to the available rewards to transfer.
-   * @param to The recipient's address
-   * @param amount The amount to transfer (in WEI)
-   * @param totalRewards The cumulative amount of rewards up to the point of the requested cycle
-   * @param _cycle The desired cycle for which to choose the root hash
-   * @param proof The _proof that enables the claim of the requested amount of tokens
+   * @notice Claim rewards.
+   * @dev Anyone can claim own rewards by submitting the amount and a proof.
+   * The amount should be lower or equal to the available allocated to withdraw.
    * */
-  function _handleDistributionWithProof(
-    address to,
-    uint256 amount,
-    uint256 totalRewards,
-    uint256 _cycle,
-    bytes32[] calldata proof
-  ) internal returns (bool) {
-    if (totalRewards == 0) {
-      revert TotalRewardsAreZero();
+  function claim() external override requestClaimExists whenNotPaused nonReentrant {
+    if (block.timestamp > requestedClaims[_msgSender()].time + claimWaitPeriod) {
+      uint amountToClaim = requestedClaims[_msgSender()].amount;
+      requestedClaims[_msgSender()].amount = 0;
+      claims[_msgSender()] = claims[_msgSender()].add(amountToClaim);
+      claimedRewards = claimedRewards.add(amountToClaim);
+      if (!token.transfer(_msgSender(), amountToClaim)) {
+        revert TransferFailed();
+      }
+      emit Claimed(_msgSender(), amountToClaim);
+    } else {
+      revert WaitingPeriodInEffect();
     }
-    if (amount == 0) {
-      revert AmountRequestedIsZero();
-    }
-    if (amount > allocatedRewardsForProofMinusRewarded(_msgSender(), totalRewards, _cycle, proof)) {
-      revert AmountIsOverAvailableRewardsToClaim();
-    }
-    claims[to] = claims[to].add(amount);
-    claimedRewards = claimedRewards.add(amount);
-    if (!token.transfer(to, amount)) {
-      revert TransferFailed();
-    }
-    return true;
+  }
+
+  /**
+   * @notice Update claim wait period.
+   * */
+  function updateClaimWaitPeriod(uint _claimWaitPeriod) external override onlyRole(DISTRIBUTOR_ROLE) {
+    claimWaitPeriod = _claimWaitPeriod;
   }
 
   function pause() public onlyRole(DEFAULT_ADMIN_ROLE) {
