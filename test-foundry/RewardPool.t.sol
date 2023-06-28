@@ -186,9 +186,12 @@ contract RewardPoolTest is Test {
     );
     vm.stopPrank();
     vm.startPrank(address(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes())));
-    if (amount > remainingBalance || amount == 0) {
-      vm.expectRevert();
-      wrappedProxyV1.claim(amount, uint256(rewards[leaves[0]].toList()[1].toUintStrict()), 0, _proof);
+    if (amount > remainingBalance) {
+      vm.expectRevert(IRewardPool.AmountIsOverAvailableRewardsToClaim.selector);
+      wrappedProxyV1.claim(amount, 10000000000000000000, 0, _proof);
+    } else if (amount == 0) {
+      vm.expectRevert(IRewardPool.AmountRequestedIsZero.selector);
+      wrappedProxyV1.claim(amount, 10000000000000000000, 0, _proof);
     } else {
       wrappedProxyV1.claim(amount, 10000000000000000000, 0, _proof);
     }
