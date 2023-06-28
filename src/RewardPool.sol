@@ -183,7 +183,7 @@ contract RewardPool is
       revert AmountRequestedIsZero();
     }
     if (amount > allocatedRewardsForProofMinusRewarded(to, totalRewards, _cycle, proof)) {
-      revert AmountIsOverAvailableRewardsToWithdraw();
+      revert AmountIsOverAvailableRewardsToClaim();
     }
     claims[to] = claims[to].add(amount);
     claimedRewards = claimedRewards.add(amount);
@@ -254,7 +254,7 @@ contract RewardPool is
       revert AmountRequestedIsZero();
     }
     if (amount > allocatedRewardsForProofMinusRewarded(_msgSender(), totalRewards, _cycle, proof)) {
-      revert AmountIsOverAvailableRewardsToWithdraw();
+      revert AmountIsOverAvailableRewardsToClaim();
     }
     claims[to] = claims[to].add(amount);
     claimedRewards = claimedRewards.add(amount);

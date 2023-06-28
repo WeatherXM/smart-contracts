@@ -49,6 +49,7 @@ contract WeatherXMTest is Test {
         assertEq(weatherXM.balanceOf(admin), maxSupply);
     }
 
+
     function testMintEntireBalanceToDeployer() public {
         assertEq(
             weatherXM.totalSupply(),
@@ -125,6 +126,7 @@ contract WeatherXMTest is Test {
             expRevertMessage: "ERC20: transfer to the zero address"
         });
     }
+
 
     function testPausedTransfer() public {
         vm.startPrank(admin);
