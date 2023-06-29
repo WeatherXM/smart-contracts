@@ -62,6 +62,8 @@ coverage/
 coverage.json
 cache
 lcov.info
+merged-lcov.info
+filtered-lcov.info
 
 #security
 flat

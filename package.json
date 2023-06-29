@@ -9,7 +9,7 @@
 		"test:spec": "npx hardhat test test/*.spec.ts",
 		"test:integration": "npx hardhat --config hardhat-fork.config.ts test",
 		"test:all": "npm run generate:testing-data && npx hardhat --config hardhat-fork.config.ts test && forge test --ffi",
-		"coverage": "forge coverage --ffi",
+		"coverage": "./utils/coverage.sh",
 		"coverage:report": "forge coverage --ffi --report lcov && genhtml lcov.info -o coverage --branch-coverage",
 		"compile": "forge compile",
 		"clean": "yarn hardhat clean && rm -rf types/generated && forge clean",

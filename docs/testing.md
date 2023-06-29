@@ -53,7 +53,7 @@ Static analysis and dynamic analysis are two automated testing methods for evalu
 
 Key Folders:
 
-- `/security`: Scripts used to run static analysis tools like Slither and Mythril
+- `/utils`: Scripts used to run static analysis tools like Slither and Mythril
 
 ### Static Analysis
 
@@ -70,7 +70,7 @@ After Slither's completion a `slither` folder will be created in the root folder
 You may run Mythril using the following command for the root folder:
 
 ```
-./security/flattener.sh && sudo ./security/mythril.sh
+./utils/flattener.sh && sudo ./utils/mythril.sh
 ```
 
 The `flattener.sh` will generated all falttened contracts which will then be used as input for Mythril in `mythril.sh`. After Mythril's completion a `mythril` folder will be created in the root folder containing the report.
