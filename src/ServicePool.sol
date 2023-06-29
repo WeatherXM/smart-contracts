@@ -93,6 +93,9 @@ contract ServicePool is
     uint256 duration,
     string memory serviceId
   ) external override whenNotPaused nonReentrant validService(serviceId) {
+    if (duration < serviceCatalog[serviceId].moq) {
+      revert BellowMOQ();
+    }
     // prior to this op is required that the user approves the _amount to be transferred
     // by invoking the approve function of ERC20 contract
     wxm.transferFrom(_msgSender(), treasury, amount);
@@ -112,6 +115,9 @@ contract ServicePool is
     uint256 duration,
     string memory serviceId
   ) external override whenNotPaused nonReentrant validService(serviceId) {
+    if (duration < serviceCatalog[serviceId].moq) {
+      revert BellowMOQ();
+    }
     uint256 amount = duration * serviceCatalog[serviceId].vpu;
     // prior to this op is required that the user approves the _amount to be burned
     // by invoking the approve function of ERC20 contract
