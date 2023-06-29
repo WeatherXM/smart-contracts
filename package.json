@@ -10,7 +10,7 @@
 		"test:integration": "npx hardhat --config hardhat-fork.config.ts test",
 		"test:all": "npm run generate:testing-data && npx hardhat --config hardhat-fork.config.ts test && forge test --ffi",
 		"coverage": "./utils/coverage.sh",
-		"coverage:report": "forge coverage --ffi --report lcov && genhtml lcov.info -o coverage --branch-coverage",
+		"foundry:coverage:report": "forge coverage --ffi --report lcov && genhtml lcov.info -o coverage --branch-coverage",
 		"compile": "forge compile",
 		"clean": "yarn hardhat clean && rm -rf types/generated && forge clean",
 		"test:foundry:weatherxm": "forge test --mp test-foundry/WeatherXM.t.sol -vvvv",
