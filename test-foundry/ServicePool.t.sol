@@ -348,7 +348,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceWXM() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1",  20, 100);
+    servicePool.addService("serviceId1", "service1",  10, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -369,7 +369,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceWXMNotEnoughBalance() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1",  20, 100);
+    servicePool.addService("serviceId1", "service1",  10, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -385,7 +385,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceWXMNotEnoughAllowance() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1",  20, 100);
+    servicePool.addService("serviceId1", "service1",  10, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -454,7 +454,7 @@ contract ServicePoolTest is Test {
 
   function testPurchaseServiceStableCoinNotEnoughAllowance() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1",  20, 100);
+    servicePool.addService("serviceId1", "service1",  5, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -502,7 +502,7 @@ contract ServicePoolTest is Test {
 
   function testSetBasePaymentTokenAndPurchase() public {
     vm.startPrank(owner);
-    servicePool.addService("serviceId1", "service1",  20, 100);
+    servicePool.addService("serviceId1", "service1",  8, 100);
 
     vm.stopPrank();
     vm.startPrank(alice);
@@ -544,6 +544,38 @@ contract ServicePoolTest is Test {
       "AccessControl: account 0x0000000000000000000000000000000000000002 is missing role 0x09717ac20005278352439ebfe1b489a0fa1eccb8e4f93830ef8886bb58ec7bc5"
     );
     servicePool.setBasePaymentToken(address(usdt));
+
+    vm.stopPrank();
+  }
+
+  function testPurchaseServiceWXMBellowMOQ() public {
+    vm.startPrank(owner);
+    servicePool.addService("serviceId1", "service1",  20, 100);
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    wxm.mint(1000);
+    wxm.approve(address(servicePool), 800);
+
+    vm.expectRevert(IServicePool.BellowMOQ.selector);
+    servicePool.purchaseService(800, 10, "serviceId1");
+
+    vm.stopPrank();
+  }
+
+  function testPurchaseServiceStableCoinBellowMOQ() public {
+    vm.startPrank(owner);
+    servicePool.addService("serviceId1", "service1",  10, 100);
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    usdc.mint(1000);
+    usdc.approve(address(servicePool), 800);
+
+    vm.expectRevert(IServicePool.BellowMOQ.selector);
+    servicePool.purchaseService(8, "serviceId1");
 
     vm.stopPrank();
   }
