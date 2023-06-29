@@ -56,9 +56,8 @@ contract RewardPool is
     uint amount;
     uint time;
   }
-  mapping(address => uint) private claimedAmountRequest;
-  mapping(address => RequestedClaim) private requestedClaims;
-  uint claimWaitPeriod;
+  mapping(address => RequestedClaim) public latestRequestedClaims;
+  uint public claimWaitPeriod;
 
   /**
    * @notice Rate limit for submitting root hashes.
@@ -75,7 +74,7 @@ contract RewardPool is
   }
 
   modifier requestClaimExists() {
-    if (requestedClaims[_msgSender()].amount == 0) {
+    if (latestRequestedClaims[_msgSender()].amount == 0) {
       revert NoRequestClaim();
     }
     _;
@@ -246,7 +245,8 @@ contract RewardPool is
     if (_amount > allocatedRewardsForProofMinusRewarded(_msgSender(), _totalRewards, _cycle, proof)) {
       revert AmountIsOverAvailableRewardsToClaim();
     }
-    requestedClaims[_msgSender()] = RequestedClaim({ amount: _amount, time: block.timestamp });
+    latestRequestedClaims[_msgSender()] = RequestedClaim({ amount: _amount, time: block.timestamp });
+    emit RequestClaim(_msgSender(), _amount);
   }
 
   /**
@@ -255,9 +255,9 @@ contract RewardPool is
    * The amount should be lower or equal to the available allocated to withdraw.
    * */
   function claim() external override requestClaimExists whenNotPaused nonReentrant {
-    if (block.timestamp > requestedClaims[_msgSender()].time + claimWaitPeriod) {
-      uint amountToClaim = requestedClaims[_msgSender()].amount;
-      requestedClaims[_msgSender()].amount = 0;
+    if (block.timestamp > latestRequestedClaims[_msgSender()].time + claimWaitPeriod) {
+      uint amountToClaim = latestRequestedClaims[_msgSender()].amount;
+      latestRequestedClaims[_msgSender()].amount = 0;
       claims[_msgSender()] = claims[_msgSender()].add(amountToClaim);
       claimedRewards = claimedRewards.add(amountToClaim);
       if (!token.transfer(_msgSender(), amountToClaim)) {

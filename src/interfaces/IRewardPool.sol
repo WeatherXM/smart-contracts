@@ -15,6 +15,7 @@ interface IRewardPool {
   error TargetAddressIsContractAddress();
   error NoRequestClaim();
   error WaitingPeriodInEffect();
+
   /**
    * @dev Emitted when root hash is submitted
    * This event contains the root hash and the cycle indicated when it was submitted
@@ -35,6 +36,12 @@ interface IRewardPool {
    * This event contains the target address for business development tokens and the amount
    */
   event BusinessDevTokensTransferred(address indexed to, uint256 amount);
+
+  /**
+   @dev Emitted when a user wants to claim rewards
+   * This event contains the address of the requester and the amount
+   */
+  event RequestClaim(address indexed from, uint256 amount);
 
   //root hash submission
   function submitMerkleRoot(bytes32 root) external returns (bool);
