@@ -976,6 +976,36 @@ describe('RewardPool', () => {
       const balance = await token.balanceOf(rewardee);
       expect(balance).to.be.equal(0);
     });
+
+    it('should latestRequestedClaims for the user to whom rewards were transferred', async () => {
+      const RewardPool = await ethers.getContractFactory('RewardPool');
+
+      const { rewardPool, token, distributor, addr2 } = await loadFixture(
+        deployInitialStateFixture
+      );
+      const { rewardee, proof, rewardAmount } = await loadFixture(
+        deployTransferRewardsState
+      );
+
+      await rewardPool
+        .connect(addr2)
+        .requestClaim(rewardAmount, rewardAmount, 0, proof);
+
+      const latestRequestedClaims = await rewardPool.latestRequestedClaims(addr2.address);
+
+      expect(latestRequestedClaims.amount).to.be.equal(rewardAmount);
+
+      await rewardPool
+        .connect(distributor)
+        .transferRewards(rewardee, rewardAmount, rewardAmount, 0, proof);
+      const rewardeeBalance = await token.balanceOf(rewardee);
+      expect(rewardeeBalance).to.be.equal(rewardAmount);
+
+      const latestRequestedClaimsAfterTransferRewards = await rewardPool.latestRequestedClaims(addr2.address);
+      expect(latestRequestedClaimsAfterTransferRewards.amount).to.be.equal('0');
+      await expect(rewardPool.connect(addr2).claim())
+        .to.be.revertedWithCustomError(RewardPool, 'NoRequestClaim');
+    });
   });
 
   describe('testing pausability', () => {

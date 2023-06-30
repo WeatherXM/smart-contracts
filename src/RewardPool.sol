@@ -202,6 +202,7 @@ contract RewardPool is
     }
     claims[to] = claims[to].add(amount);
     claimedRewards = claimedRewards.add(amount);
+    latestRequestedClaims[to].amount = 0;
     if (!token.transfer(to, amount)) {
       revert TransferFailed();
     }
