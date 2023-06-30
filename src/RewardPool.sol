@@ -101,6 +101,7 @@ contract RewardPool is
 
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(UPGRADER_ROLE, _msgSender());
+    _setupRole(DISTRIBUTOR_ROLE, _msgSender());
     token = IWeatherXM(_token);
     lastRewardRootTs = block.timestamp;
     claimWaitPeriod = 30 minutes;
