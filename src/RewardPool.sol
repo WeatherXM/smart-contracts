@@ -38,15 +38,8 @@ contract RewardPool is
   mapping(uint256 => bytes32) public roots;
 
   uint256 public cycle;
-  uint256 private rewardsEnabled;
-  uint256 private companyEnabled;
-  uint256 public totalAllocatedRewards;
+  uint256 private lastRewardRootTs;
   uint256 public claimedRewards;
-  uint256 public companyWithdrawals;
-  address public companyTokensTarget;
-  address public businessDevTokensTarget;
-  uint256 public latestBusinessDevWithdrawal;
-  uint256 public latestCompanyWithdrawal;
 
   /* ========== ROLES ========== */
   bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
@@ -59,10 +52,10 @@ contract RewardPool is
    * @param period The period for which to enforce the rate limit
    * */
   modifier rateLimit(uint256 period) {
-    if (block.timestamp < rewardsEnabled) {
+    if (block.timestamp < lastRewardRootTs) {
       revert RewardsRateLimitingInEffect();
     }
-    rewardsEnabled = rewardsEnabled.add(period);
+    lastRewardRootTs = lastRewardRootTs.add(period);
     _;
   }
 
@@ -95,8 +88,7 @@ contract RewardPool is
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(UPGRADER_ROLE, _msgSender());
     token = IWeatherXM(_token);
-    rewardsEnabled = block.timestamp;
-    companyEnabled = block.timestamp;
+    lastRewardRootTs = block.timestamp;
   }
 
   /**
