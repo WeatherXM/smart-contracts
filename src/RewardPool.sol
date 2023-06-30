@@ -38,7 +38,7 @@ contract RewardPool is
   mapping(uint256 => bytes32) public roots;
 
   uint256 public cycle;
-  uint256 private lastRewardTs;
+  uint256 private lastRewardRootTs;
   uint256 public claimedRewards;
 
   /* ========== ROLES ========== */
@@ -52,10 +52,10 @@ contract RewardPool is
    * @param period The period for which to enforce the rate limit
    * */
   modifier rateLimit(uint256 period) {
-    if (block.timestamp < lastRewardTs) {
+    if (block.timestamp < lastRewardRootTs) {
       revert RewardsRateLimitingInEffect();
     }
-    lastRewardTs = lastRewardTs.add(period);
+    lastRewardRootTs = lastRewardRootTs.add(period);
     _;
   }
 
