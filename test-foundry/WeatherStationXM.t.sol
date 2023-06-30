@@ -77,7 +77,7 @@ contract WeatherStationXMTest is Test {
         assertEq(weatherStationXM.totalSupply(), 1);
         vm.stopPrank();
         vm.startPrank(alice);
-        weatherStationXM.burn(1);
+        weatherStationXM.burn(0);
         vm.stopPrank();
     }
 
@@ -92,7 +92,7 @@ contract WeatherStationXMTest is Test {
         vm.stopPrank();
         vm.startPrank(alice);
         vm.expectRevert(bytes("Pausable: paused"));
-        weatherStationXM.burn(1);
+        weatherStationXM.burn(0);
         vm.stopPrank();
     }
 
@@ -121,7 +121,8 @@ contract WeatherStationXMTest is Test {
         assertEq(weatherStationXM.totalSupply(), 1);
         vm.stopPrank();
         vm.startPrank(alice);
-        weatherStationXM.transferFrom(alice, bob, 1);
+        weatherStationXM.transferFrom(alice, bob, 0);
+        assertEq(weatherStationXM.ownerOf(0), bob);
         vm.stopPrank();
     }
 
@@ -131,7 +132,18 @@ contract WeatherStationXMTest is Test {
         assertEq(weatherStationXM.balanceOf(alice), 1);
         assertEq(weatherStationXM.totalSupply(), 1);
         vm.expectRevert("ERC721: caller is not token owner or approved");
-        weatherStationXM.transferFrom(bob, jack, 1);
+        weatherStationXM.transferFrom(bob, jack, 0);
+        assertEq(weatherStationXM.ownerOf(0), alice);
+        vm.stopPrank();
+    }
+
+    function testMintTheCorrectIds() public {
+        vm.startPrank(bob);
+        weatherStationXM.mintWeatherStation(alice, metadataURI);
+        assertEq(weatherStationXM.ownerOf(0), alice);
+
+        weatherStationXM.mintWeatherStation(bob, metadataURI);
+        assertEq(weatherStationXM.ownerOf(1), bob);
         vm.stopPrank();
     }
 }
