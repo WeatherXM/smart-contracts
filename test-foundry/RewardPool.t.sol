@@ -211,6 +211,7 @@ contract RewardPoolTest is Test {
       emit log_bytes(proofsEncoded[0].toList()[j].toBytes());
       _proof[j] = bytes32(proofsEncoded[0].toList()[j].toBytes());
     }
+    uint256 balanceBefore = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
     wrappedProxyV1.transferRewards(
       bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
       1000000000000000000,
@@ -218,8 +219,8 @@ contract RewardPoolTest is Test {
       0,
       _proof
     );
-    uint256 balance = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
-    assertEq(1000000000000000000, balance);
+    uint256 balanceAfter = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
+    assertEq(balanceBefore + 1000000000000000000, balanceAfter);
     vm.stopPrank();
   }
 

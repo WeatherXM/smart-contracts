@@ -291,14 +291,15 @@ contract ServicePoolTest is Test {
     servicePool.addService("serviceId1", "service1", 10, 100);
     servicePool.addService("serviceId2", "service2", 20, 200);
     servicePool.addService("serviceId3", "service3", 30, 300);
+    servicePool.addService("serviceId4", "service4", 40, 400);
 
     uint256 servicesCount = servicePool.getServiceCount();
-    assertEq(servicesCount, 3);
+    assertEq(servicesCount, 4);
 
     servicePool.deleteService("serviceId2");
 
     uint256 servicesCountAfterDelete = servicePool.getServiceCount();
-    assertEq(servicesCountAfterDelete, 2);
+    assertEq(servicesCountAfterDelete, 3);
 
     (uint256 index1, string memory name1, uint256 moq1, uint256 vpu1) = servicePool.getServiceByID(
       "serviceId1"
@@ -313,10 +314,19 @@ contract ServicePoolTest is Test {
       "serviceId3"
     );
 
-    assertEq(index3, 1);
+    assertEq(index3, 2);
     assertEq(name3, "service3");
     assertEq(moq3, 30);
     assertEq(vpu3, 300);
+
+    (uint256 index4, string memory name4, uint256 moq4, uint256 vpu4) = servicePool.getServiceByID(
+      "serviceId4"
+    );
+
+    assertEq(index4, 1);
+    assertEq(name4, "service4");
+    assertEq(moq4, 40);
+    assertEq(vpu4, 400);
 
     vm.stopPrank();
   }

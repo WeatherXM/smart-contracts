@@ -78,7 +78,7 @@ describe('RewardPool', () => {
     rewards[0] = [await addr2.getAddress(), ethers.utils.parseEther(String(10.0))]
   })
   describe('submitMerkleRoot', () => {
-    it('should submit root hash in the cycle already set by minting', async () => {
+    it('should submit root hash starting from index 0', async () => {
       const { rewards, rewardPool, distributor } = await loadFixture(deployInitialStateFixture);
       mine(1);
       const tree = StandardMerkleTree.of(rewards, ['address', 'uint256']);
@@ -92,7 +92,7 @@ describe('RewardPool', () => {
       expect(txnGetRoot).to.equal(root);
     });
 
-    it('should not allow 2 merkle roots to be submitted in the same day/cycle', async () => {
+    it('should not allow more than 1 merkle roots to be submitted in the same day/cycle', async () => {
       const { rewards, rewardPool, distributor } = await loadFixture(deployInitialStateFixture);
       const tree = StandardMerkleTree.of(rewards, ['address', 'uint256']);
       const root = tree.root;
@@ -112,16 +112,17 @@ describe('RewardPool', () => {
         rewardPool
           .connect(distributor)
           .submitMerkleRoot(updatedRoot)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(rewardPool, 'RewardsRateLimitingInEffect');
     });
 
     it('should not allow a non-distributor to submit a merkle root', async () => {
       const { rewards, rewardPool, addr2 } = await loadFixture(deployInitialStateFixture);
       const tree = StandardMerkleTree.of(rewards, ['address', 'uint256']);
       const root = tree.root;
+      const distributorRole = await rewardPool.DISTRIBUTOR_ROLE()
       await expect(
         rewardPool.connect(addr2).submitMerkleRoot(root)
-      ).to.be.reverted;
+      ).to.be.revertedWith(`AccessControl: account ${addr2.address.toLocaleLowerCase()} is missing role ${distributorRole}`);
     });
   });
 
@@ -402,7 +403,7 @@ describe('RewardPool', () => {
       expect(poolBalance).to.be.equal(remainingRewardPoolBalance);
     });
 
-    it('should make mulitple claims within his allotted amount from the pool', async () => {
+    it('should make multiple claims within his allotted amount from the pool', async () => {
       const { rewards, rewardPool, addr2, token } = await loadFixture(deployInitialStateFixture);
       const { rewardee, rewardAmount, proof } = await loadFixture(deployClaimFixture);
       const withdrawalAmount = rewards[0][1];
@@ -482,14 +483,14 @@ describe('RewardPool', () => {
         rewardPool
           .connect(addr2)
           .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, garbageProof)
-      ).to.be.reverted;
+      ).to.be.revertedWith('INVALID PROOF');
       expect(rewardeeBalance).to.be.equal(0);
       expect(poolBalance).to.be.equal(rewardPoolBalance);
       expect(claims).to.be.equal(0);
       expect(proofBalanceAfterClaim).to.be.equal(rewardAmount);
     });
 
-    it('should not be able to make mulitple claims that total to more than their allotted amount from the pool', async () => {
+    it('should not be able to make multiple claims that total to more than their allotted amount from the pool', async () => {
       const { rewardPool, addr2, token } = await loadFixture(deployInitialStateFixture);
       const { rewardee, rewardAmount, proof, garbageProof } = await loadFixture(deployClaimFixture);
       const withdrawalAmount = ethers.utils.parseEther(String(4));
@@ -505,7 +506,7 @@ describe('RewardPool', () => {
             0,
             garbageProof
           )
-      ).to.be.reverted;
+      ).to.be.revertedWith('INVALID PROOF');
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
       const claims = await rewardPool.claims(rewardee);
@@ -538,7 +539,7 @@ describe('RewardPool', () => {
             0,
             garbageProof
           )
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(rewardPool, 'AmountRequestedIsZero');
     });
 
     it('should not claim rewards from the pool if not in tree', async () => {
@@ -553,7 +554,7 @@ describe('RewardPool', () => {
             0,
             garbageProof
           )
-      ).to.be.reverted;
+      ).to.be.revertedWith('INVALID PROOF');
     });
 
     it('should not claim their allotted tokens from the pool when the pool does not have enough tokens', async () => {
@@ -617,7 +618,7 @@ describe('RewardPool', () => {
           0,
           proof
         );
-      const udpatedProofBalanceAfterClaim =
+      const updatedProofBalanceAfterClaim =
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           updatedRewardAmount,
@@ -627,7 +628,7 @@ describe('RewardPool', () => {
       expect(proofBalanceAfterClaim).to.be.equal(
         ethers.utils.parseEther(String(2))
       );
-      expect(udpatedProofBalanceAfterClaim).to.be.equal(
+      expect(updatedProofBalanceAfterClaim).to.be.equal(
         ethers.utils.parseEther(String(12))
       );
       await rewardPool
@@ -638,7 +639,16 @@ describe('RewardPool', () => {
           1,
           updatedProof
         );
-
+      const updatedProofBalanceAfterBothClaims =
+        await rewardPool.getRemainingAllocatedRewards(
+          rewardee,
+          updatedRewardAmount,
+          1,
+          updatedProof
+        );
+      expect(updatedProofBalanceAfterBothClaims).to.be.equal(
+        ethers.utils.parseEther(String(0))
+      );
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
       const claims = await rewardPool.claims(rewardee);
@@ -703,7 +713,7 @@ describe('RewardPool', () => {
         rewardPool
           .connect(addr2)
           .claim(ethers.utils.parseEther(String(12)), rewardAmount, 0, proof)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(rewardPool, 'AmountIsOverAvailableRewardsToClaim');
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
       const claims = await rewardPool.claims(rewardee);
@@ -804,7 +814,7 @@ describe('RewardPool', () => {
       ).to.be.reverted;
     });
 
-    it('should not transfer more tokens than minted', async () => {
+    it('should not transfer more tokens than available', async () => {
       const { rewardPool, token, distributor } = await loadFixture(deployInitialStateFixture);
       const { rewardee, proof, rewardAmount } = await loadFixture(deployTransferRewardsState);
       const withdrawalAmount = ethers.utils.parseEther(String(100000));
@@ -812,7 +822,7 @@ describe('RewardPool', () => {
         rewardPool
           .connect(distributor)
           .transferRewards(rewardee, withdrawalAmount, rewardAmount, 0, proof)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(rewardPool, 'AmountIsOverAvailableRewardsToClaim');
       const balance = await token.balanceOf(rewardee);
       expect(balance).to.be.equal(0);
     });
@@ -825,7 +835,7 @@ describe('RewardPool', () => {
         rewardPool
           .connect(distributor)
           .transferRewards(rewardee, withdrawalAmount, rewardAmount, 0, proof)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(rewardPool, 'AmountRequestedIsZero');
       const balance = await token.balanceOf(rewardee);
       expect(balance).to.be.equal(0);
     });
