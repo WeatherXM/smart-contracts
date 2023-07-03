@@ -79,6 +79,24 @@ contract WeatherXMTest is Test {
         vm.stopPrank();
     }
 
+    function testBurn() public {
+        vm.startPrank(admin);
+        vm.deal(admin, 1 ether);
+        // Send WXM to alice and bob
+        weatherXM.transfer(alice, 10 * 10 ** 18);
+        weatherXM.transfer(bob, 10 * 10 ** 18);
+        vm.stopPrank();
+        vm.startPrank(bob);
+        vm.deal(bob, 1 ether);
+        weatherXM.burn(6 * 10 ** 18);
+        assertEq(
+            weatherXM.totalSupply(),
+            maxSupply - 6 * 10 ** 18
+        );
+        assertEq(weatherXM.balanceOf(bob), 4 * 10 ** 18);
+        vm.stopPrank();
+    }
+
     function testTransferAllTokens() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
@@ -148,5 +166,32 @@ contract WeatherXMTest is Test {
         vm.startPrank(alice);
         weatherXM.burn(35);
         vm.stopPrank();
+    }
+
+    function testUnpause() public {
+        vm.startPrank(admin);
+        vm.deal(admin, 1 ether);
+        weatherXM.transfer(alice, 35);
+        weatherXM.pause();
+        
+        vm.expectRevert("Pausable: paused");
+        transferToken(alice, bob, 35);
+
+        vm.startPrank(admin);
+        weatherXM.unpause();
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+        weatherXM.transfer(bob, 35);
+        vm.stopPrank();
+
+        assertEq(
+            weatherXM.balanceOf(alice),
+            0
+        );
+        assertEq(
+            weatherXM.balanceOf(bob),
+            35
+        );
     }
 }

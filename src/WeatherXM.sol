@@ -16,18 +16,6 @@ contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
 
   /* ========== CUSTOM ERRORS ========== */
   error TokenTransferWhilePaused();
-  error TargetAddressIsZero();
-  error TargetAddressIsContractAddress();
-
-  modifier validDestination(address _address) {
-    if (_address == address(0x0)) {
-      revert TargetAddressIsZero();
-    }
-    if (_address == address(this)) {
-      revert TargetAddressIsContractAddress();
-    }
-    _;
-  }
 
   constructor(string memory _name, string memory _symbol) ERC20(_name, _symbol) ERC20Capped(maxSupply) {
     _mint(_msgSender(), maxSupply);
