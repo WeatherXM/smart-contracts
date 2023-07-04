@@ -45,16 +45,16 @@ contract RewardPoolTest is Test {
   function setUp() external {
     string[] memory inputs = new string[](2);
     inputs[0] = "cat";
-    inputs[1] = "test-foundry/scripts/data/data_serialized.txt";
+    inputs[1] = "test/foundry/scripts/data/data_serialized.txt";
     resultData = vm.ffi(inputs);
     data = abi.decode(resultData, (bytes32[100]));
     string[] memory inputProofs = new string[](2);
     inputProofs[0] = "cat";
-    inputProofs[1] = "test-foundry/scripts/data/proofs_serialized.txt";
+    inputProofs[1] = "test/foundry/scripts/data/proofs_serialized.txt";
     resultProofs = vm.ffi(inputProofs);
     string[] memory inputRoot = new string[](2);
     inputRoot[0] = "cat";
-    inputRoot[1] = "test-foundry/scripts/data/root.txt";
+    inputRoot[1] = "test/foundry/scripts/data/root.txt";
     resultRoot = vm.ffi(inputRoot);
     root = abi.decode(resultRoot, (bytes32));
     emit log_bytes(resultRoot.toRlpItem().toBytes());
