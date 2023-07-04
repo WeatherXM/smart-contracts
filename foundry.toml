@@ -9,7 +9,7 @@ libs = [
   'node_modules',
     'lib'
 ]
-auto_detect_remappings = true
+auto_detect_remappings = false
 fuzz = { runs = 10000 }
 
 [profile.ci]
