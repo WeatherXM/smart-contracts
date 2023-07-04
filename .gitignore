@@ -75,7 +75,7 @@ security/mythril/mythril-report
 output.json
 
 #test data
-test-foundry/scripts/data
+test/foundry/scripts/data
 
 #scripts
 scripts/config.json
