@@ -15,8 +15,8 @@
 		"sourceMap": true,
 		"strict": true,
 		"target": "es6"
-	  },
+	},
 	"exclude": ["node_modules"],
-	"include": [ "./scripts", "./test", "./test-foundry/scripts"],
+	"include": ["./scripts", "./test", "./test/foundry/scripts"],
 	"files": ["./hardhat.config.ts"]
 }
