@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
-import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
-import { IERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+import { IAccessControl } from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import { IERC721Enumerable } from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IWeatherStationXM is IAccessControl, IERC721Enumerable {
   /**
