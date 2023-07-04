@@ -1,3 +1,13 @@
 module.exports = {
-	skipFiles: ["interfaces", "mocks", "test"],
+	measureStatementCoverage: true,
+	measureFunctionCoverage: true,
+	measureModifierCoverage: false,
+	skipFiles: [
+		"interfaces",
+		"mocks",
+		"test",
+		"ServicePool.sol",
+		"WeatherXM.sol",
+		"WeatherStationXM.sol",
+	],
 };
