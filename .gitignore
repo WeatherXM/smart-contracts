@@ -1,4 +1,6 @@
 ### Solidity ###
+#test data
+test/foundry/scripts/data/
 # Logs
 logs
 *.log
@@ -73,9 +75,6 @@ security/mythril/mythril-report
 
 #slither
 output.json
-
-#test data
-test-foundry/scripts/data
 
 #scripts
 scripts/config.json

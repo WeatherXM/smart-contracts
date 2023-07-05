@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { ERC20Capped } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
-import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeMath } from "lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
+import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { ERC20Capped } from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Capped.sol";
+import { Pausable } from "lib/openzeppelin-contracts/contracts/security/Pausable.sol";
+import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
   /* ========== LIBRARIES ========== */
