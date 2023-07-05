@@ -10,8 +10,8 @@ import '@nomicfoundation/hardhat-chai-matchers';
 import '@nomicfoundation/hardhat-network-helpers';
 import 'solidity-docgen';
 import envConfig from './config';
-import fs from 'fs';
-
+import * as fs from 'fs';
+  
 function getRemappings() {
   return fs
     .readFileSync('remappings.txt', 'utf8')
