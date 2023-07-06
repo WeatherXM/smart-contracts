@@ -34,7 +34,7 @@ contract ServicePoolTest is Test {
   uint8 public constant DECIMALS = 18;
   int256 public constant INITIAL_ANSWER = 1 * 10 ** 18;
   string IPFS_CID = "Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu";
-  bytes32 public constant MANUFACTURER_ROLE = keccak256("MANUFACTURER_ROLE");
+  bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
   bytes32 public constant SERVICE_MANAGER_ROLE = keccak256("SERVICE_MANAGER_ROLE");
   address internal admin = address(0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
 
@@ -56,9 +56,35 @@ contract ServicePoolTest is Test {
     servicePool = ServicePool(address(proxy));
     servicePool.initialize(address(wxm), address(usdc), treasury);
     vm.stopPrank();
-    //grant role to ServicePool (inside weatherStationXM) in order to be able
-    //to provision NFTs when burning onboarding fee
-    // servicePool.grantRole(SERVICE_MANAGER_ROLE, address(servicePool));
+  }
+
+  function testInitCorrectly() public {
+    wxm = new MintableERC20("WeatherXM", "WXM");
+    usdc = new MintableERC20("USDC", "USDC");
+    usdt = new MintableERC20("USDC", "USDC");
+    owner = address(0x1);
+    vm.label(owner, "Owner");
+    alice = address(0x2);
+    vm.label(alice, "Alice");
+    bob = address(0x3);
+    vm.label(bob, "Bob");
+    treasury = address(0x4);
+    vm.label(treasury, "Treasury");
+    vm.startPrank(owner);
+    servicePoolImplementation = new ServicePool();
+    proxy = new ERC1967Proxy(address(servicePoolImplementation), "");
+    servicePool = ServicePool(address(proxy));
+    servicePool.initialize(address(wxm), address(usdc), treasury);
+
+    address initializedWxmToken = address(servicePool.wxm());
+    address initializedBasePaymentToken = address(servicePool.basePaymentToken());
+    address initializedTreasury = servicePool.treasury();
+
+    assertEq(initializedWxmToken, address(wxm));
+    assertEq(initializedBasePaymentToken, address(usdc));
+    assertEq(initializedTreasury, treasury);
+
+    vm.stopPrank();
   }
 
   function testDeployerHasDefaultAdminRole() public {
@@ -564,6 +590,84 @@ contract ServicePoolTest is Test {
 
     vm.expectRevert(IServicePool.BellowMOQ.selector);
     servicePool.purchaseService(8, "serviceId1");
+
+    vm.stopPrank();
+  }
+
+  function testGetServiceAtIndex() public {
+    vm.startPrank(owner);
+    servicePool.addService("serviceId1", "service1", 10, 100);
+    servicePool.addService("serviceId2", "service2", 20, 200);
+    servicePool.addService("serviceId3", "service3", 30, 300);
+    servicePool.addService("serviceId4", "service4", 40, 400);
+
+    string memory serviceId = servicePool.getServiceAtIndex(1);
+
+    assertEq(serviceId, "serviceId2");
+  }
+
+  function testPurchaseServiceWXMPaused() public {
+    vm.startPrank(owner);
+    servicePool.addService("serviceId1", "service1", 10, 100);
+    servicePool.pause();
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    wxm.mint(1000);
+    wxm.approve(address(servicePool), 800);
+
+    vm.expectRevert("Pausable: paused");
+    servicePool.purchaseService(800, 10, "serviceId1");
+
+    vm.stopPrank();
+    vm.startPrank(owner);
+
+    servicePool.unpause();
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    servicePool.purchaseService(800, 10, "serviceId1");
+
+    uint256 aliceBalance = wxm.balanceOf(alice);
+    uint256 treasuryBalance = wxm.balanceOf(treasury);
+
+    assertEq(aliceBalance, 200);
+    assertEq(treasuryBalance, 800);
+
+    vm.stopPrank();
+  }
+
+  function testPurchaseServiceStableCoinPaused() public {
+    vm.startPrank(owner);
+    servicePool.addService("serviceId1", "service1", 5, 100);
+    servicePool.pause();
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    usdc.mint(1000);
+    usdc.approve(address(servicePool), 800);
+
+    vm.expectRevert("Pausable: paused");
+    servicePool.purchaseService(8, "serviceId1");
+
+    vm.stopPrank();
+    vm.startPrank(owner);
+
+    servicePool.unpause();
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    servicePool.purchaseService(8, "serviceId1");
+
+    uint256 aliceBalance = usdc.balanceOf(alice);
+    uint256 treasuryBalance = usdc.balanceOf(treasury);
+
+    assertEq(aliceBalance, 200);
+    assertEq(treasuryBalance, 800);
 
     vm.stopPrank();
   }

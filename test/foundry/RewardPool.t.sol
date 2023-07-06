@@ -280,6 +280,44 @@ contract RewardPoolTest is Test {
     assertTrue(murkyVerified == ozVerified);
   }
 
+  function testPuaseUnpause() public {
+    vm.startPrank(owner);
+    
+    wrappedProxyV1.pause();
+
+    assertEq(wrappedProxyV1.paused(), true);
+
+    wrappedProxyV1.unpause();
+
+    assertEq(wrappedProxyV1.paused(), false);
+
+    vm.stopPrank();
+  }
+
+  function testPuaseUnpauseMissingRole() public {
+    vm.startPrank(alice);
+    
+    vm.expectRevert("AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
+    wrappedProxyV1.pause();
+
+    assertEq(wrappedProxyV1.paused(), false);
+
+    vm.stopPrank();
+    vm.startPrank(owner);
+
+    wrappedProxyV1.pause();
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    vm.expectRevert("AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
+    wrappedProxyV1.unpause();
+
+    assertEq(wrappedProxyV1.paused(), true);
+
+    vm.stopPrank();
+  }
+
   function _getData() internal view returns (bytes32[] memory) {
     bytes32[] memory _data = new bytes32[](data.length);
     uint length = data.length;

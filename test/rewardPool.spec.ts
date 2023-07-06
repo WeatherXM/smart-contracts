@@ -865,6 +865,90 @@ describe('RewardPool', () => {
       expect(claims).to.be.equal(rewardAmount);
       expect(proofBalanceAfterClaim).to.be.equal(0);
     });
+
+    it('should revert if total rewards are 0', async () => {
+      const { rewardPool, addr2, token } = await loadFixture(
+        deployInitialStateFixture
+      );
+      const { rewardee, rewardAmount, proof } = await loadFixture(
+        deployClaimFixture
+      );
+      const remainedTokens = await rewardPool
+        .connect(addr2)
+        .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
+      expect(
+        await ethers.utils.formatUnits(String(remainedTokens), 'wei')
+      ).to.equal(await ethers.utils.formatUnits(String(rewardAmount), 'wei'));
+
+      const balanceOfRewardPool = await token.balanceOf(rewardPool.address);
+      expect(
+        await ethers.utils.formatUnits(String(balanceOfRewardPool), 'wei')
+      ).to.equal(
+        await ethers.utils.formatUnits(
+          String(ethers.utils.parseEther(String(56_000_000))),
+          'wei'
+        )
+      );
+      await expect(
+        rewardPool
+          .connect(addr2)
+          .claim(rewardAmount, 0, 0, proof)
+      ).to.be.revertedWithCustomError(rewardPool, 'TotalRewardsAreZero')
+    });
+
+    it('should revert if the reward pool is paused', async () => {
+      const { rewardPool, addr2, token, owner } = await loadFixture(
+        deployInitialStateFixture
+      );
+      const { rewardee, rewardAmount, proof } = await loadFixture(
+        deployClaimFixture
+      );
+      const remainedTokens = await rewardPool
+        .connect(addr2)
+        .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
+      expect(
+        await ethers.utils.formatUnits(String(remainedTokens), 'wei')
+      ).to.equal(await ethers.utils.formatUnits(String(rewardAmount), 'wei'));
+
+      const balanceOfRewardPool = await token.balanceOf(rewardPool.address);
+      expect(
+        await ethers.utils.formatUnits(String(balanceOfRewardPool), 'wei')
+      ).to.equal(
+        await ethers.utils.formatUnits(
+          String(ethers.utils.parseEther(String(56_000_000))),
+          'wei'
+        )
+      );
+
+      await rewardPool.connect(owner).pause();
+
+      await expect(
+        rewardPool
+          .connect(addr2)
+          .claim(rewardAmount, 0, 0, proof)
+      ).to.be.revertedWith('Pausable: paused');
+
+      await rewardPool.connect(owner).unpause();
+
+      await rewardPool
+          .connect(addr2)
+          .claim(rewardAmount, rewardAmount, 0, proof);
+
+      const rewardeeBalance = await token.balanceOf(rewardee);
+      const claims = await rewardPool.claims(rewardee);
+      const proofBalanceAfterClaim = await rewardPool
+        .connect(addr2)
+        .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
+      expect(ethers.utils.formatUnits(String(rewardeeBalance), 'wei')).to.equal(
+        ethers.utils.formatUnits(String(rewardAmount), 'wei')
+      );
+      expect(ethers.utils.formatUnits(String(claims), 'wei')).to.equal(
+        ethers.utils.formatUnits(String(rewardAmount), 'wei')
+      );
+      expect(
+        ethers.utils.formatUnits(String(proofBalanceAfterClaim), 'wei')
+      ).to.equal(ethers.utils.formatUnits(String(0), 'wei'));
+    });
   });
 
   describe('transfer rewards', () => {
@@ -968,6 +1052,73 @@ describe('RewardPool', () => {
       const balance = await token.balanceOf(rewardee);
       expect(balance).to.be.equal(0);
     });
+
+    it('should revert if to address is 0', async () => {
+      const { rewardPool, distributor } = await loadFixture(
+        deployInitialStateFixture
+      );
+      const { proof, rewardAmount } = await loadFixture(
+        deployTransferRewardsState
+      );
+      await expect(
+        rewardPool
+          .connect(distributor)
+          .transferRewards(ethers.constants.AddressZero, rewardAmount, rewardAmount, 0, proof)
+      ).to.be.revertedWithCustomError(rewardPool, 'TargetAddressIsZero');
+    });
+
+    it('should revert if to address is rewardPool address', async () => {
+      const { rewardPool, distributor } = await loadFixture(
+        deployInitialStateFixture
+      );
+      const { proof, rewardAmount } = await loadFixture(
+        deployTransferRewardsState
+      );
+      await expect(
+        rewardPool
+          .connect(distributor)
+          .transferRewards(rewardPool.address, rewardAmount, rewardAmount, 0, proof)
+      ).to.be.revertedWithCustomError(rewardPool, 'TargetAddressIsContractAddress');
+    });
+
+    it('should revert if total total rewards are 0', async () => {
+      const { rewardPool, distributor } = await loadFixture(
+        deployInitialStateFixture
+      );
+      const { rewardee, proof, rewardAmount } = await loadFixture(
+        deployTransferRewardsState
+      );
+      await expect(
+        rewardPool
+          .connect(distributor)
+          .transferRewards(rewardee, rewardAmount, 0, 0, proof)
+      ).to.be.revertedWithCustomError(rewardPool, 'TotalRewardsAreZero');
+    });
+
+    it('should revert if the rewardPool is paused', async () => {
+      const { rewardPool, distributor, owner, token } = await loadFixture(
+        deployInitialStateFixture
+      );
+      const { rewardee, proof, rewardAmount } = await loadFixture(
+        deployTransferRewardsState
+      );
+
+      await rewardPool.connect(owner).pause();
+
+      await expect(
+        rewardPool
+          .connect(distributor)
+          .transferRewards(rewardee, rewardAmount, 0, 0, proof)
+      ).to.be.revertedWith('Pausable: paused');
+
+      await rewardPool.connect(owner).unpause();
+
+      await rewardPool
+        .connect(distributor)
+        .transferRewards(rewardee, rewardAmount, rewardAmount, 0, proof);
+      const rewardeeBalance = await token.balanceOf(rewardee);
+      expect(rewardeeBalance).to.be.equal(rewardAmount);
+    });
   });
 
   describe('testing pausability', () => {
@@ -981,26 +1132,31 @@ describe('RewardPool', () => {
       await rewardPool.connect(owner).setCompanyTarget(companyTarget);
       return { companyTarget, rewardCycle };
     }
-    // it('should pause rewardpool', async () => {
-    //   const { rewardPool, addr2, owner } = await loadFixture(deployInitialStateFixture);
-    //   await time.increase(90000);
-    //   if (await rewardPool.connect(owner).pause()) {
-    //     await expect(rewardPool.connect(addr2).transferCompanyTokens()).to.be
-    //       .reverted;
-    //   }
-    // });
-    // it('should unpause rewardpool', async () => {
-    //   const { rewardPool, distributor, owner } = await loadFixture(deployInitialStateFixture);
-    //   const { companyTarget, rewardCycle } = await loadFixture(deployPausabilityState);
-    //   const companyMint = await mintingManager.dailyCompanyMint(rewardCycle);
-    //   await time.increase(90000);
-    //   await rewardPool.connect(owner).pause();
-    //   if (await rewardPool.connect(owner).unpause()) {
-    //     await expect(rewardPool.connect(distributor).transferCompanyTokens())
-    //       .to.emit(rewardPool, 'CompanyTokensTransferred')
-    //       .withArgs(companyTarget, companyMint);
-    //   }
-    // });
+    it('should pause rewardpool', async () => {
+      const { rewardPool, owner } = await loadFixture(deployInitialStateFixture);
+
+      await rewardPool.connect(owner).pause();
+
+      const isPaused = await rewardPool.paused();
+
+      expect(isPaused).to.be.true;
+    });
+
+    it('should unpause rewardpool', async () => {
+      const { rewardPool, owner } = await loadFixture(deployInitialStateFixture);
+
+      await rewardPool.connect(owner).pause();
+
+      const isPaused = await rewardPool.paused();
+
+      expect(isPaused).to.be.true;
+
+      await rewardPool.connect(owner).unpause();
+
+      const isPausedAfterUnpause = await rewardPool.paused();
+
+      expect(isPausedAfterUnpause).to.be.false;
+    });
   });
   describe('testing upgradeability', () => {
     it('should upgrade rewardpool to rewardpoolV2', async () => {
