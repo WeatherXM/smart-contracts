@@ -39,7 +39,7 @@ contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
   }
 
   function _mint(address account, uint256 amount) internal override(ERC20, ERC20Capped) {
-    return ERC20Capped._mint(account, amount);
+    ERC20Capped._mint(account, amount);
   }
 
   function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override whenNotPaused {
