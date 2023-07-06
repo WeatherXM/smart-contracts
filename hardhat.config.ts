@@ -2,6 +2,7 @@ import 'hardhat-preprocessor';
 import '@nomicfoundation/hardhat-toolbox';
 import '@openzeppelin/hardhat-upgrades';
 import 'hardhat-gas-reporter';
+import 'hardhat-deploy';
 import '@typechain/hardhat';
 import { HardhatUserConfig } from 'hardhat/config';
 import '@nomiclabs/hardhat-ethers';
@@ -42,6 +43,11 @@ const hardhatConfig: HardhatUserConfig = {
       chainId: 1337,
       allowUnlimitedContractSize: false,
       initialBaseFeePerGas: 0
+    },
+    goerli: {
+      chainId: 5,
+      url: "",
+      accounts: []
     }
     // mumbai: {
     //   url: process.env.NODE_URL || `https://polygon-mumbai.g.alchemy.com/v2/${envConfig.ALCHEMY_API_KEY}`,
