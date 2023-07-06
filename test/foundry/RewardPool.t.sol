@@ -45,16 +45,16 @@ contract RewardPoolTest is Test {
   function setUp() external {
     string[] memory inputs = new string[](2);
     inputs[0] = "cat";
-    inputs[1] = "test-foundry/scripts/data/data_serialized.txt";
+    inputs[1] = "test/foundry/scripts/data/data_serialized.txt";
     resultData = vm.ffi(inputs);
     data = abi.decode(resultData, (bytes32[100]));
     string[] memory inputProofs = new string[](2);
     inputProofs[0] = "cat";
-    inputProofs[1] = "test-foundry/scripts/data/proofs_serialized.txt";
+    inputProofs[1] = "test/foundry/scripts/data/proofs_serialized.txt";
     resultProofs = vm.ffi(inputProofs);
     string[] memory inputRoot = new string[](2);
     inputRoot[0] = "cat";
-    inputRoot[1] = "test-foundry/scripts/data/root.txt";
+    inputRoot[1] = "test/foundry/scripts/data/root.txt";
     resultRoot = vm.ffi(inputRoot);
     root = abi.decode(resultRoot, (bytes32));
     emit log_bytes(resultRoot.toRlpItem().toBytes());
@@ -214,6 +214,7 @@ contract RewardPoolTest is Test {
       emit log_bytes(proofsEncoded[0].toList()[j].toBytes());
       _proof[j] = bytes32(proofsEncoded[0].toList()[j].toBytes());
     }
+    uint256 balanceBefore = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
     wrappedProxyV1.transferRewards(
       bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
       1000000000000000000,
@@ -221,8 +222,8 @@ contract RewardPoolTest is Test {
       0,
       _proof
     );
-    uint256 balance = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
-    assertEq(1000000000000000000, balance);
+    uint256 balanceAfter = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
+    assertEq(balanceBefore + 1000000000000000000, balanceAfter);
     vm.stopPrank();
   }
 
@@ -271,6 +272,34 @@ contract RewardPoolTest is Test {
     vm.stopPrank();
   }
 
+  function testTransferRewardsZero() public {
+    vm.startPrank(owner);
+    wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
+    vm.stopPrank();
+    vm.startPrank(bob);
+    wrappedProxyV1.submitMerkleRoot(root);
+    RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
+    RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
+    bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
+    for (uint j = 0; j < proofsEncoded[0].toList().length; ++j) {
+      emit log_bytes(proofsEncoded[0].toList()[j].toBytes());
+      _proof[j] = bytes32(proofsEncoded[0].toList()[j].toBytes());
+    }
+    uint256 balanceBefore = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
+
+    vm.expectRevert(IRewardPool.TotalRewardsAreZero.selector);
+    wrappedProxyV1.transferRewards(
+      bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
+      1000000000000000000,
+      0,
+      0,
+      _proof
+    );
+    uint256 balanceAfter = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
+    assertEq(balanceBefore, balanceAfter);
+    vm.stopPrank();
+  }
+
   function testCompatabilityOpenZeppelinProver(bytes32[] memory _data, uint256 node) public {
     vm.assume(_data.length > 1);
     vm.assume(node < _data.length);
@@ -280,6 +309,44 @@ contract RewardPoolTest is Test {
     bool murkyVerified = m.verifyProof(root, proof, valueToProve);
     bool ozVerified = MerkleProof.verify(proof, root, valueToProve);
     assertTrue(murkyVerified == ozVerified);
+  }
+
+  function testPuaseUnpause() public {
+    vm.startPrank(owner);
+    
+    wrappedProxyV1.pause();
+
+    assertEq(wrappedProxyV1.paused(), true);
+
+    wrappedProxyV1.unpause();
+
+    assertEq(wrappedProxyV1.paused(), false);
+
+    vm.stopPrank();
+  }
+
+  function testPuaseUnpauseMissingRole() public {
+    vm.startPrank(alice);
+    
+    vm.expectRevert("AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
+    wrappedProxyV1.pause();
+
+    assertEq(wrappedProxyV1.paused(), false);
+
+    vm.stopPrank();
+    vm.startPrank(owner);
+
+    wrappedProxyV1.pause();
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    vm.expectRevert("AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
+    wrappedProxyV1.unpause();
+
+    assertEq(wrappedProxyV1.paused(), true);
+
+    vm.stopPrank();
   }
 
   function _getData() internal view returns (bytes32[] memory) {

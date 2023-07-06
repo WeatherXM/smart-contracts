@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { ERC20Capped } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
-import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeMath } from "lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
+import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { ERC20Capped } from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Capped.sol";
+import { Pausable } from "lib/openzeppelin-contracts/contracts/security/Pausable.sol";
+import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
   /* ========== LIBRARIES ========== */
@@ -16,18 +16,6 @@ contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
 
   /* ========== CUSTOM ERRORS ========== */
   error TokenTransferWhilePaused();
-  error TargetAddressIsZero();
-  error TargetAddressIsContractAddress();
-
-  modifier validDestination(address _address) {
-    if (_address == address(0x0)) {
-      revert TargetAddressIsZero();
-    }
-    if (_address == address(this)) {
-      revert TargetAddressIsContractAddress();
-    }
-    _;
-  }
 
   constructor(string memory _name, string memory _symbol) ERC20(_name, _symbol) ERC20Capped(maxSupply) {
     _mint(_msgSender(), maxSupply);
@@ -51,7 +39,7 @@ contract WeatherXM is Pausable, ERC20, ERC20Capped, Ownable {
   }
 
   function _mint(address account, uint256 amount) internal override(ERC20, ERC20Capped) {
-    return ERC20Capped._mint(account, amount);
+    ERC20Capped._mint(account, amount);
   }
 
   function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override whenNotPaused {

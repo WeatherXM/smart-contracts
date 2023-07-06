@@ -1,0 +1,7 @@
+@chainlink/contracts/=lib/chainlink/contracts/
+@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+ds-test/=lib/ds-test/src/
+forge-std/=lib/forge-std/src/
+murky/=lib/murky/src/
+solidity-rlp/=lib/Solidity-RLP/contracts/

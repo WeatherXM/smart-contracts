@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
+import { SafeMath } from "lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
+import { ERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
+import { ERC721Enumerable } from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import { IERC165 } from "lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
+import { ReentrancyGuard } from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import { AccessControl } from "lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
+import { Pausable } from "lib/openzeppelin-contracts/contracts/security/Pausable.sol";
 import { IWeatherStationXM } from "./interfaces/IWeatherStationXM.sol";
-import { ERC721URIStorage } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import { ERC721URIStorage } from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
 contract WeatherStationXM is
   ERC721,

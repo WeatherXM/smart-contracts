@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ path: __dirname + '/.env' });
 
 interface ENV {
   ALCHEMY_API_KEY: string | undefined;
