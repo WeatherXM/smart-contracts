@@ -227,7 +227,12 @@ contract RewardPool is
    * @param _cycle The desired cycle for which to choose the root hash.
    * @param proof The _proof that enables the claim of the requested amount of tokens.
    */
-  function requestClaim(uint256 _amount, uint256 _totalRewards, uint256 _cycle, bytes32[] calldata proof) external {
+  function requestClaim(
+    uint256 _amount,
+    uint256 _totalRewards,
+    uint256 _cycle,
+    bytes32[] calldata proof
+  ) external whenNotPaused nonReentrant {
     if (_totalRewards == 0) {
       revert TotalRewardsAreZero();
     }
