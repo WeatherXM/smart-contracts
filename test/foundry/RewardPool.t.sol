@@ -269,6 +269,34 @@ contract RewardPoolTest is Test {
     vm.stopPrank();
   }
 
+  function testTransferRewardsZero() public {
+    vm.startPrank(owner);
+    wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
+    vm.stopPrank();
+    vm.startPrank(bob);
+    wrappedProxyV1.submitMerkleRoot(root);
+    RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
+    RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
+    bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
+    for (uint j = 0; j < proofsEncoded[0].toList().length; ++j) {
+      emit log_bytes(proofsEncoded[0].toList()[j].toBytes());
+      _proof[j] = bytes32(proofsEncoded[0].toList()[j].toBytes());
+    }
+    uint256 balanceBefore = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
+
+    vm.expectRevert(IRewardPool.TotalRewardsAreZero.selector);
+    wrappedProxyV1.transferRewards(
+      bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()),
+      1000000000000000000,
+      0,
+      0,
+      _proof
+    );
+    uint256 balanceAfter = weatherXM.balanceOf(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes()));
+    assertEq(balanceBefore, balanceAfter);
+    vm.stopPrank();
+  }
+
   function testCompatabilityOpenZeppelinProver(bytes32[] memory _data, uint256 node) public {
     vm.assume(_data.length > 1);
     vm.assume(node < _data.length);
