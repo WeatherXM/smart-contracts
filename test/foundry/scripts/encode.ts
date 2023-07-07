@@ -10,7 +10,11 @@ type Input =
   | Array<Input>
   | null
   | undefined
-  | any;
+  | boolean
+  | (string | BigNumber)[][]
+  | (string | BigNumber)[]
+  | bigint
+  | BigNumber;
 /* If string supplied is prefixed with '0x' remove it and return the new string */
 function stripHexPrefix(input: string): string {
   if (input.startsWith('0x')) {
@@ -28,9 +32,11 @@ function hexStringToByteArr(input: string): Uint8Array {
 
   if (input.length % 2 === 0) {
     // if even number of hex digits -> input doesn't require prefixing for splitting into hex byte values
+    /* eslint-disable-next-line */
     arr = input.match(/.{1,2}/g)! as string[];
   } else {
     // if odd number of hex digits -> prefix with 0 digit before splitting into hex byte values
+    /* eslint-disable-next-line */
     arr = ('0' + input).match(/.{1,2}/g)! as string[];
   }
 
@@ -39,15 +45,6 @@ function hexStringToByteArr(input: string): Uint8Array {
 
   // Create byte array from decimal value array
   return Uint8Array.from(decimalArr);
-}
-
-/** Method to detect whether input is escaped hexadecimal sequence */
-function isEscapedFormat(input: Input): boolean {
-  if (typeof input === 'string') {
-    return encodeURI(input[0]).startsWith('%');
-  }
-
-  return false;
 }
 
 function encode(input: Input): Uint8Array {
@@ -102,6 +99,7 @@ function encode(input: Input): Uint8Array {
     // If odd number of digits in hexadecimal string -> append '0' prefix
     const padded = payload.length % 2 === 0 ? payload : '0' + payload;
     // Create array of hex values where each element is prefixed by '0x' (we do this so byte array can convert these hex values to decimal byte values in the return statement)
+    /* eslint-disable-next-line */
     const hexArr: any[] = padded.match(/.{1,2}/g)!.map((x) => '0x' + x);
 
     // This is for hexadecimal strings with length greater than 55 bytes
