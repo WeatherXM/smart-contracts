@@ -18,7 +18,7 @@ jobs:
       - name: install dependencies
         run: npm install
       - name: Install Foundry
-          uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@v1
       - run: npm run coverage
         env:
             ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
