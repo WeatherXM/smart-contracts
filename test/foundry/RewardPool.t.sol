@@ -89,6 +89,19 @@ contract RewardPoolTest is Test {
     vm.stopPrank();
   }
 
+  function testContructor() public {
+    address token = address(wrappedProxyV1.token());
+
+    bool hasDistributorRole = wrappedProxyV1.hasRole(wrappedProxyV1.DISTRIBUTOR_ROLE, owner);
+    bool hasUpgraderRole = wrappedProxyV1.hasRole(wrappedProxyV1.UPGRADER_ROLE, owner);
+    bool hasAdminRole = wrappedProxyV1.hasRole(wrappedProxyV1.DEFAULT_ADMIN_ROLE, owner);
+
+    assertEq(token, weatherXM);
+    assertEq(hasDistributorRole, true);
+    assertEq(hasUpgraderRole, true);
+    assertEq(hasAdminRole, true);
+  }
+
   function testGetRemainingAllocatedRewards() public {
     vm.startPrank(owner);
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
