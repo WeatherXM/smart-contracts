@@ -18,7 +18,7 @@
 		"check:sizes": "forge build --sizes",
 		"lint": "solhint \"src/*.sol\" && solhint \"src/test-helpers/*.sol\" && solhint --config src/interfaces/.solhint.json \"src/interfaces/*.sol\" && prettier -c 'src/**/*.sol' && eslint \"**/*.ts\"",
 		"lint:fix": "prettier --write 'src/**/*.sol' && eslint --fix \"**/*.ts\"",
-		"slither": "python3 -m venv .venv && .venv/bin/python -m pip install slither-analyzer && .venv/bin/python -m slither . --print human-summary --json output.json",
+		"slither": "python3 -m venv .venv && .venv/bin/python -m pip install slither-analyzer && .venv/bin/python -m slither . --exclude-dependencies --print human-summary --json output.json --filter-paths mocks/|test/|interfaces/ ",
 		"docs": "./node_modules/.bin/hardhat docgen",
 		"pretty-quick": "pretty-quick",
 		"forknode:start": "yarn hardhat node --hostname 127.0.0.1 --config hardhat-fork.config.ts",
