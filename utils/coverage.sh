@@ -10,12 +10,12 @@ npx hardhat coverage
 
 # Foundry uses relative paths but Hardhat uses absolute paths.
 # Convert absolute paths to relative paths for consistency.
-sed -i -e 's/\/.*solidity.//g' ./coverage/lcov.info
+sed -i -e 's/\/.*solidity.//g' coverage/lcov.info
 
 # Merge lcov files
 lcov \
     --rc lcov_branch_coverage=1 \
-    --add-tracefile ./coverage/lcov.info \
+    --add-tracefile coverage/lcov.info \
     --add-tracefile lcov.info \
     --output-file ./coverage/lcov.info
 
