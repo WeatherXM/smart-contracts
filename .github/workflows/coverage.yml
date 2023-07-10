@@ -3,34 +3,31 @@ name: Coverage
 on: [push, pull_request]
 
 jobs:
-  build:
-
-    # run build on latest ubuntu
+  coverage:
     runs-on: ubuntu-latest
-
     steps:
-   - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-    # installing Node
-    - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: "16.x"
-          cache: "npm"
-    - name: install dependencies
-      run: npm install
-    - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-    - run: npm run coverage
-      env:
-          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
-          FORKING: ${{ secrets.FORKING }}
-          REPORT_GAS: ${{ secrets.REPORT_GAS }}
-          COINMARKETCAP_API: ${{ secrets.COINMARKETCAP_API }}
+    - uses: actions/checkout@v3
+          with:
+            submodules: recursive
+      # installing Node
+      - name: Use Node.js ${{ matrix.node-version }}
+          uses: actions/setup-node@v3
+          with:
+            node-version: "16.x"
+            cache: "npm"
+      - name: install dependencies
+        run: npm install
+      - name: Install Foundry
+          uses: foundry-rs/foundry-toolchain@v1
+      - run: npm run coverage
+        env:
+            ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+            FORKING: ${{ secrets.FORKING }}
+            REPORT_GAS: ${{ secrets.REPORT_GAS }}
+            COINMARKETCAP_API: ${{ secrets.COINMARKETCAP_API }}
 
-    # Save coverage report in Coveralls
-    - name: Coveralls
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+      # Save coverage report in Coveralls
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
