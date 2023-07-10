@@ -92,11 +92,11 @@ contract RewardPoolTest is Test {
   function testContructor() public {
     address token = address(wrappedProxyV1.token());
 
-    bool hasDistributorRole = wrappedProxyV1.hasRole(wrappedProxyV1.DISTRIBUTOR_ROLE, owner);
-    bool hasUpgraderRole = wrappedProxyV1.hasRole(wrappedProxyV1.UPGRADER_ROLE, owner);
-    bool hasAdminRole = wrappedProxyV1.hasRole(wrappedProxyV1.DEFAULT_ADMIN_ROLE, owner);
+    bool hasDistributorRole = wrappedProxyV1.hasRole(wrappedProxyV1.DISTRIBUTOR_ROLE(), owner);
+    bool hasUpgraderRole = wrappedProxyV1.hasRole(wrappedProxyV1.UPGRADER_ROLE(), owner);
+    bool hasAdminRole = wrappedProxyV1.hasRole(wrappedProxyV1.DEFAULT_ADMIN_ROLE(), owner);
 
-    assertEq(token, weatherXM);
+    assertEq(token, address(weatherXM));
     assertEq(hasDistributorRole, true);
     assertEq(hasUpgraderRole, true);
     assertEq(hasAdminRole, true);
@@ -323,7 +323,7 @@ contract RewardPoolTest is Test {
 
   function testPuaseUnpause() public {
     vm.startPrank(owner);
-    
+
     wrappedProxyV1.pause();
 
     assertEq(wrappedProxyV1.paused(), true);
@@ -337,8 +337,10 @@ contract RewardPoolTest is Test {
 
   function testPuaseUnpauseMissingRole() public {
     vm.startPrank(alice);
-    
-    vm.expectRevert("AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
+
+    vm.expectRevert(
+      "AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
+    );
     wrappedProxyV1.pause();
 
     assertEq(wrappedProxyV1.paused(), false);
@@ -351,7 +353,9 @@ contract RewardPoolTest is Test {
     vm.stopPrank();
     vm.startPrank(alice);
 
-    vm.expectRevert("AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
+    vm.expectRevert(
+      "AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
+    );
     wrappedProxyV1.unpause();
 
     assertEq(wrappedProxyV1.paused(), true);
