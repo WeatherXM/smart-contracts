@@ -15,12 +15,12 @@ lcov \
     --rc lcov_branch_coverage=1 \
     --add-tracefile coverage/lcov.info \
     --add-tracefile lcov.info \
-    --output-file merged-lcov.info
+    --output-file ./coverage/lcov.info
 
 # Filter out node_modules, test, and mock files
 lcov \
     --rc lcov_branch_coverage=1 \
-    --remove merged-lcov.info \
+    --remove ./coverage/lcov.info \
     --output-file filtered-lcov.info \
     "*node_modules*" "*test*" "*mock*"
 
