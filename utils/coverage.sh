@@ -1,5 +1,7 @@
 set -e # exit on error
 
+npm run generate:testing-data
+
 # generates lcov.info
 forge coverage --ffi --report lcov
 
