@@ -22,7 +22,7 @@ jobs:
         # this will use the latest Node 12 version
         node-version: 12.x
     # install dependencies using clean install to avoid package lock updates
-    - run: npm ci
+    - run: npm i
     # finally run the tests
     - run: npm run coverage
 
