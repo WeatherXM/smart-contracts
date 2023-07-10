@@ -16,15 +16,21 @@ jobs:
     # this will check out the current branch (https://github.com/actions/checkout#Push-a-commit-using-the-built-in-token)
     - uses: actions/checkout@v2
     # installing Node
-    - name: Use Node.js 12.x
-      uses: actions/setup-node@v1
-      with:
-        # this will use the latest Node 12 version
-        node-version: 12.x
-    # install dependencies using clean install to avoid package lock updates
-    - run: npm i
-    # finally run the tests
+    - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16.x"
+          cache: "npm"
+    - name: install dependencies
+      run: npm install
+    - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
     - run: npm run coverage
+      env:
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+          FORKING: ${{ secrets.FORKING }}
+          REPORT_GAS: ${{ secrets.REPORT_GAS }}
+          COINMARKETCAP_API: ${{ secrets.COINMARKETCAP_API }}
 
     # Save coverage report in Coveralls
     - name: Coveralls
