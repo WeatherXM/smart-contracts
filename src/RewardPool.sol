@@ -28,6 +28,7 @@ contract RewardPool is
   PausableUpgradeable
 {
   using SafeERC20Upgradeable for IERC20Upgradeable;
+
   /* ========== LIBRARIES ========== */
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
