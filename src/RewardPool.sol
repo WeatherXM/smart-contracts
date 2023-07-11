@@ -88,6 +88,7 @@ contract RewardPool is
 
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(UPGRADER_ROLE, _msgSender());
+    _setupRole(DISTRIBUTOR_ROLE, _msgSender());
     token = IERC20Upgradeable(_token);
     lastRewardRootTs = block.timestamp;
   }
