@@ -7,8 +7,8 @@ import { UUPSUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contract
 import { ReentrancyGuardUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 import { AccessControlEnumerableUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlEnumerableUpgradeable.sol";
 import { PausableUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol";
-import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { IWeatherXM } from "./interfaces/IWeatherXM.sol";
+import { SafeERC20Upgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IERC20Upgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import { IServicePool } from "./interfaces/IServicePool.sol";
 
 /**
@@ -25,11 +25,13 @@ contract ServicePool is
   PausableUpgradeable,
   IServicePool
 {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
+
   /* ========== LIBRARIES ========== */
   using SafeMath for uint256;
   /* ========== STATE VARIABLES ========== */
-  IWeatherXM public wxm;
-  IERC20 public basePaymentToken;
+  IERC20Upgradeable public wxm;
+  IERC20Upgradeable public basePaymentToken;
   address public treasury;
 
   /* ========== ROLES ========== */
@@ -72,8 +74,8 @@ contract ServicePool is
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(UPGRADER_ROLE, _msgSender());
     _setupRole(SERVICE_MANAGER_ROLE, _msgSender());
-    wxm = IWeatherXM(_wxm);
-    basePaymentToken = IERC20(_basePaymentToken);
+    wxm = IERC20Upgradeable(_wxm);
+    basePaymentToken = IERC20Upgradeable(_basePaymentToken);
     treasury = _treasury;
   }
 
@@ -98,7 +100,7 @@ contract ServicePool is
     }
     // prior to this op is required that the user approves the _amount to be transferred
     // by invoking the approve function of ERC20 contract
-    wxm.transferFrom(_msgSender(), treasury, amount);
+    wxm.safeTransferFrom(_msgSender(), treasury, amount);
     emit PurchasedService(_msgSender(), amount, serviceId, duration, address(wxm));
   }
 
@@ -121,7 +123,7 @@ contract ServicePool is
     uint256 amount = duration * serviceCatalog[serviceId].vpu;
     // prior to this op is required that the user approves the _amount to be burned
     // by invoking the approve function of ERC20 contract
-    basePaymentToken.transferFrom(_msgSender(), treasury, amount);
+    basePaymentToken.safeTransferFrom(_msgSender(), treasury, amount);
     emit PurchasedService(_msgSender(), amount, serviceId, duration, address(basePaymentToken));
   }
 
@@ -257,7 +259,7 @@ contract ServicePool is
    * @param _basePaymentToken The contract address of the chosen ERC20 token.
    */
   function setBasePaymentToken(address _basePaymentToken) external onlyRole(SERVICE_MANAGER_ROLE) {
-    basePaymentToken = IERC20(_basePaymentToken);
+    basePaymentToken = IERC20Upgradeable(_basePaymentToken);
   }
 
   /**
