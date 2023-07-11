@@ -25,9 +25,3 @@ jobs:
             FORKING: ${{ secrets.FORKING }}
             REPORT_GAS: ${{ secrets.REPORT_GAS }}
             COINMARKETCAP_API: ${{ secrets.COINMARKETCAP_API }}
-
-      # Save coverage report in Coveralls
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}

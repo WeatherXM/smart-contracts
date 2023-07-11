@@ -2,6 +2,8 @@
 
 This repo contains all contracts and tests relevant to WeatherXM network. WeatherXM is a community powered weather network, that rewards weather station owners and provides accurate weather services to Web3 enterprises.
 
+[![Coverage](https://github.com/WeatherXM/smart-contracts-v2/actions/workflows/coverage.yml/badge.svg?branch=feat%2Fadd-coverage-badges)](https://github.com/WeatherXM/smart-contracts-v2/actions/workflows/coverage.yml)
+
 ## Branches
 - `releases` contain complete, tested and audited contract code, generally on mainnet
 - `main` contains complete, tested and audited contract code, generally on mumbai, to support beta users
