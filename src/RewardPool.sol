@@ -7,8 +7,9 @@ import { Initializable } from "lib/openzeppelin-contracts-upgradeable/contracts/
 import { UUPSUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol";
+import { SafeERC20Upgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IERC20Upgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import { AccessControlEnumerableUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlEnumerableUpgradeable.sol";
-import { IWeatherXM } from "./interfaces/IWeatherXM.sol";
 import { IRewardPool } from "./interfaces/IRewardPool.sol";
 
 /**
@@ -26,17 +27,19 @@ contract RewardPool is
   IRewardPool,
   PausableUpgradeable
 {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
+
   /* ========== LIBRARIES ========== */
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
   /* ========== STATE VARIABLES ========== */
-  IWeatherXM public token;
+  IERC20Upgradeable public token;
   mapping(address => uint256) public claims;
   mapping(uint256 => bytes32) public roots;
 
   uint256 public cycle;
-  uint256 private lastRewardRootTs;
+  uint256 public lastRewardRootTs;
   uint256 public claimedRewards;
 
   /* ========== ROLES ========== */
@@ -86,7 +89,7 @@ contract RewardPool is
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(UPGRADER_ROLE, _msgSender());
     _setupRole(DISTRIBUTOR_ROLE, _msgSender());
-    token = IWeatherXM(_token);
+    token = IERC20Upgradeable(_token);
     lastRewardRootTs = block.timestamp;
   }
 
@@ -178,9 +181,7 @@ contract RewardPool is
     }
     claims[to] = claims[to].add(amount);
     claimedRewards = claimedRewards.add(amount);
-    if (!token.transfer(to, amount)) {
-      revert TransferFailed();
-    }
+    token.safeTransfer(to, amount);
     return true;
   }
 
@@ -249,9 +250,7 @@ contract RewardPool is
     }
     claims[to] = claims[to].add(amount);
     claimedRewards = claimedRewards.add(amount);
-    if (!token.transfer(to, amount)) {
-      revert TransferFailed();
-    }
+    token.safeTransfer(to, amount);
     return true;
   }
 
