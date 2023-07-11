@@ -19,9 +19,12 @@ jobs:
         run: npm install
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-      - run: npm run coverage
+      - name: Install LCOV
+        run: npm install lcov
+      - name: Run Coverage
+        run: npm run coverage
         env:
-            ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
-            FORKING: ${{ secrets.FORKING }}
-            REPORT_GAS: ${{ secrets.REPORT_GAS }}
-            COINMARKETCAP_API: ${{ secrets.COINMARKETCAP_API }}
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+          FORKING: ${{ secrets.FORKING }}
+          REPORT_GAS: ${{ secrets.REPORT_GAS }}
+          COINMARKETCAP_API: ${{ secrets.COINMARKETCAP_API }}
