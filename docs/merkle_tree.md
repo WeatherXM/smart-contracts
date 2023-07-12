@@ -2,13 +2,13 @@
 
 ## Theory
 
-The naive approach of holding no state on-chain and distributing tokens to every recipient in a loop comes with a couple of drawbacks, such as scaling issues, difficulty to reason about individual payments and uncontrolled gas fees to name a few. A more extensive list is presented in the following tables. An alternative way is to utilize a Merkle tree data structure to store data on-chain, an approach that comes with the following benefits:
+The naive approach of holding no state on-chain and distributing tokens to every recipient in a loop comes with a couple of drawbacks, such as scaling issues, difficulty to reason about individual payments, and uncontrolled gas fees to name a few. A more extensive list is presented in the following tables. An alternative way is to utilize a Merkle tree data structure to store data on-chain, an approach that comes with the following benefits:
 
 - Total freedom to choose what kind of data is stored on-chain
-- Independent withdraw transactions per recipient whenever he chooses
+- Independent claim transactions per recipient whenever they choose
 - Constant gas cost for reward allocation (independent of recipient number)
-- Any amount from the allocated tokens can be transferred to the recipients’ wallets by their request
-- All withdrawing operations are atomic transactions which leads to better traceability from on chain data
+- Any amount from the allocated tokens can be transferred to the recipients’ wallets at their request
+- All claiming operations are atomic transactions which leads to better traceability from on-chain data
 
 #### Naive Approach
 
@@ -42,8 +42,12 @@ The Merkle Tree root hash is created using [Openzeppelin library](https://github
 
 The data in the Merkle tree's leaf nodes are the address of each weather station owner and the cumulative rewards for all his stations. Metadata about the merkle tree such as the latest cycle and all proofs will be submitted in a predefined IPFS CID, in order to enable weather station owners to perform programmatically the claiming of rewards. Another reason why we provide all this info, is to promote transparency and integrity.
 
+The Merkle Tree root hash is created using the [Openzeppelin library](https://github.com/OpenZeppelin/merkle-tree). Then, it is submitted once every day in RewardPool in order to enable weather station owners to claim their rewards. Each time a weather station owner claims their rewards the [MerkleProof](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol) lib is orchestrated to validate the proof.
+
+The data in the Merkle tree's leaf nodes are the address of each weather station owner and the cumulative rewards for all their stations. Metadata about the merkle tree such as the latest cycle and all proofs will be submitted in a predefined IPFS CID, in order to enable weather station owners to perform programmatically the claiming of rewards. Another reason why we provide all this info is to promote transparency and integrity.
+
 ### Claiming Rewards
 
-All station owners can withdraw their rewards at any time without time or other limit. Every owner initiates the process of withdrawing and signs the withdrawal transaction with his private key at the frontend (clients) through Metamask or another wallet, or programmatically by interacting directly with the smart contract. Therefore, a station owner can withdraw only his rewards. During withdrawing, the required parameters by the smart contract are the latest proof, his cumulative rewards, the latest cycle and finally the amount to claim which can be smaller or equal to the total amount of cumulative rewards. The cycle has been introduced in order to track the minting process. Every time a mint is completed, the cycle is increased and then the cycle is used as accessor in the root hashes mapping in the RewardPool.
+All station owners can claim their rewards at any time without time or other limits. Every owner initiates the process of claiming and signing the claim transaction with their private key at the front end (clients) through Metamask or another wallet, or programmatically by interacting directly with the smart contract. Therefore, a station owner can claim only their rewards. During the claim, the required parameters by the smart contract are the latest proof, their cumulative rewards, the latest cycle, and finally the amount to claim which can be smaller or equal to the total amount of cumulative rewards. The cycle has been introduced in order to track each minting cycle. Each time a new merkle root is submitted a new cycle is created.
 
-All these parameters (proof, cumulative rewards, cycle and requested amount) will be added to the withdrawal transaction on the fly from the backend given that the transaction is initiated through a WeatherXM client. In case that the transaction is initiated programmatically, the station owner has to sign the transaction with his private key similar to the first approach and fill all required info manually for the transaction to succeed by using some framework such as [Web3.js](https://github.com/web3/web3.js/) or [ethersjs](https://github.com/ethers-io/ethers.js/). The latest proof can be retrieved through IPFS and the rest of the info which are required for the programmatically approach to succeed will be provided through the WeatherXM dashboard. The station owner can choose the amount he wishes to withdraw and given this one is eligible, then the WXM amount of his choosing will be transferred to his wallet upon successful withdrawal.
+All these parameters (proof, cumulative rewards, cycle, and requested amount) will be added to the claim transaction on the fly from the backend given that the transaction is initiated through a WeatherXM client. In case the transaction is initiated programmatically, the station owner has to sign the transaction with his private key similar to the first approach, and fill in all required info manually for the transaction to succeed by using some framework such as [Web3.js](https://github.com/web3/web3.js/) or [ethersjs](https://github.com/ethers-io/ethers.js/). The latest proof can be retrieved through IPFS and the rest of the info which is required for the programmatic approach to succeed will be provided through the WeatherXM dashboard. The station owner can choose the amount he wishes to claim and given this one is eligible, then the WXM amount of his choosing will be transferred to his wallet upon successful claiming.
