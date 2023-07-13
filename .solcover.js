@@ -8,5 +8,6 @@ module.exports = {
 		"test",
 		"ServicePool.sol",
 		"WeatherStationXM.sol",
+		"WeatherXMLicense.sol",
 	],
 };
