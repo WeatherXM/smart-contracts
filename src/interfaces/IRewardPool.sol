@@ -35,7 +35,7 @@ interface IRewardPool {
   event BusinessDevTokensTransferred(address indexed to, uint256 amount);
 
   //root hash submission
-  function submitMerkleRoot(bytes32 root) external returns (bool);
+  function submitMerkleRoot(bytes32 root, uint256 totalRewards) external returns (bool);
 
   // transfer functions
   function transferRewards(
