@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 import { IWeatherXMStation } from "./interfaces/IWeatherXMStation.sol";
 import { ECDSA } from "lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 import { AccessControl } from "lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
-import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
+import { Base64 } from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
 import { ERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import { IERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import { ERC721Enumerable } from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
