@@ -9,6 +9,7 @@ import { ERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721
 import { IERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import { ERC721Enumerable } from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { IERC165 } from "lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXMStation {
   using ECDSA for bytes32;
@@ -88,27 +89,27 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     return
       abi.encodePacked(
         "{",
-        "\"trait_type\": \"serialNum\"",
+        "\"trait_type\": \"serialNum\",",
         "\"value\": \"",
         tokenMetadata[tokenId].serialNum,
         "\"",
-        "}",
+        "},",
         "{",
-        "\"trait_type\": \"model\"",
+        "\"trait_type\": \"model\",",
         "\"value\": \"",
         tokenMetadata[tokenId].model,
         "\"",
-        "}",
+        "},",
         "{",
-        "\"trait_type\": \"pubKey\"",
+        "\"trait_type\": \"pubKey\",",
         "\"value\": \"",
-        tokenMetadata[tokenId].pubKey,
+        Strings.toHexString(tokenMetadata[tokenId].pubKey),
         "\"",
-        "}",
+        "},",
         "{",
-        "\"trait_type\": \"decomissioned\"",
+        "\"trait_type\": \"decomissioned\",",
         "\"value\": \"",
-        tokenMetadata[tokenId].decomissioned,
+        tokenMetadata[tokenId].decomissioned ? "true" : "false",
         "\"",
         "}"
       );
@@ -122,14 +123,14 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     bytes memory dataURI = abi.encodePacked(
       "{",
       "\"name\": \"WeatherXM Station #",
-      tokenId,
-      "\"",
+      Strings.toString(tokenId),
+      "\",",
       "\"image\": \"",
       tokenMetadata[tokenId].image,
-      "\"",
+      "\",",
       "\"stationMetadata\": \"",
       tokenMetadata[tokenId].stationMetadata,
-      "\"",
+      "\",",
       "\"attributes\": [",
       _getNFTAttributes(tokenId),
       "]",

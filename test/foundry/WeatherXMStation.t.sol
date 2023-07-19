@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { WeatherXMStation } from "src/WeatherXMStation.sol";
 import { IWeatherXMStation } from "src/interfaces/IWeatherXMStation.sol";
 import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 //solhint-disable-next-line no-console
 import { console } from "forge-std/console.sol";
 
@@ -17,56 +18,74 @@ contract WeatherXMStationTest is Test {
   address internal stationPubkey1;
   address internal stationPubkey2;
   address internal stationPubkey3;
-  bytes internal exampleMetadata1 = abi.encodePacked(
-    "{",
-      "\"name\": \"WeatherXM Station #", uint256(0), "\"",
-      "\"image\": \"ipfs://image1\"",
-      "\"stationMetadata\": \"ipfs://stationMetadata1\"",
-      "\"attributes\": [",
-        "{",
-          "\"trait_type\": \"serialNum\"",
-          "\"value\": \"serialNum1\"",
-        "}",
-        "{",
-          "\"trait_type\": \"model\"",
-          "\"value\": \"model1\"",
-        "}",
-        "{",
-          "\"trait_type\": \"pubKey\"",
-          "\"value\": \"", address(0x4), "\"",
-        "}",
-        "{",
-          "\"trait_type\": \"decomissioned\"",
-          "\"value\": \"", false, "\"",
-        "}",
-      "]",
-    "}"
-  );
-  bytes internal exampleMetadata2 = abi.encodePacked(
-    "{",
-      "\"name\": \"WeatherXM Station #", uint256(1), "\"",
-      "\"image\": \"ipfs://image2\"",
-      "\"stationMetadata\": \"ipfs://stationMetadata2\"",
-      "\"attributes\": [",
-        "{",
-          "\"trait_type\": \"serialNum\"",
-          "\"value\": \"serialNum2\"",
-        "}",
-        "{",
-          "\"trait_type\": \"model\"",
-          "\"value\": \"model2\"",
-        "}",
-        "{",
-          "\"trait_type\": \"pubKey\"",
-          "\"value\": \"", address(0x5), "\"",
-        "}",
-        "{",
-          "\"trait_type\": \"decomissioned\"",
-          "\"value\": \"", false, "\"",
-        "}",
-      "]",
-    "}"
-  );
+
+  function getAttr1() internal returns(bytes memory) {
+    return abi.encodePacked(
+      "{",
+        "\"trait_type\": \"serialNum\",",
+        "\"value\": \"serialNum1\"",
+      "},",
+      "{",
+        "\"trait_type\": \"model\",",
+        "\"value\": \"model1\"",
+      "},",
+      "{",
+        "\"trait_type\": \"pubKey\",",
+        "\"value\": \"", Strings.toHexString(address(0x4)), "\"",
+      "},",
+      "{",
+        "\"trait_type\": \"decomissioned\",",
+        "\"value\": \"false\"",
+      "}"
+    );
+  }
+
+  function getAttr2() internal returns(bytes memory) {
+    return abi.encodePacked(
+      "{",
+        "\"trait_type\": \"serialNum\",",
+        "\"value\": \"serialNum2\"",
+      "},",
+      "{",
+        "\"trait_type\": \"model\",",
+        "\"value\": \"model2\"",
+      "},",
+      "{",
+        "\"trait_type\": \"pubKey\",",
+        "\"value\": \"", Strings.toHexString(address(0x5)), "\"",
+      "},",
+      "{",
+        "\"trait_type\": \"decomissioned\",",
+        "\"value\": \"false\"",
+      "}"
+    );
+  }
+  
+  function getMeta1() internal returns(bytes memory) {
+    return abi.encodePacked(
+      "{",
+        "\"name\": \"WeatherXM Station #0\",",
+        "\"image\": \"ipfs://image1\",",
+        "\"stationMetadata\": \"ipfs://stationMetadata1\",",
+        "\"attributes\": [",
+          getAttr1(),
+        "]",
+      "}"
+    );
+  }
+
+  function getMeta2() internal returns(bytes memory) {
+    return abi.encodePacked(
+      "{",
+        "\"name\": \"WeatherXM Station #1\",",
+        "\"image\": \"ipfs://image2\",",
+        "\"stationMetadata\": \"ipfs://stationMetadata2\",",
+        "\"attributes\": [",
+          getAttr2(),
+        "]",
+      "}"
+    );
+  }
 
   function setUp() public {
     vm.startPrank(admin);
@@ -293,6 +312,9 @@ contract WeatherXMStationTest is Test {
   }
 
   function testTokenURI() public {
+    bytes memory exampleMetadata1 = getMeta1();
+
+    bytes memory exampleMetadata2 = getMeta2();
     vm.startPrank(admin);
 
     weatherXMStation.mintWeatherStation(
