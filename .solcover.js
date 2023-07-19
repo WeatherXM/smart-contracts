@@ -7,7 +7,6 @@ module.exports = {
 		"mocks",
 		"test",
 		"ServicePool.sol",
-		"WeatherXMStation.sol",
 		"WeatherXMLicense.sol",
 		"RewardsVault.sol",
 	],

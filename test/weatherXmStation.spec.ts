@@ -4,7 +4,7 @@ import Web3 from 'web3'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { mine } from '@nomicfoundation/hardhat-network-helpers';
 
-describe.only('WeatherXMStation', () => {
+describe('WeatherXMStation', () => {
   async function loadWeatherXMStationFixture() {
     const [
       owner,
