@@ -7,26 +7,20 @@ interface IWeatherStationXM is IAccessControl, IERC721Enumerable {
   /**
    * @dev Custom errors
    */
-  error RecipientIsContractAddress();
-  error CantTransferWSWhenNotOwning();
-  error CantExchangeWSWhenNotOwning();
-  error CallerIsNotTokenOwner();
+  error PubKeyAlreadyExists();
+  error SerialNumAlreadyExists();
+  error TokenDoesNotExist();
 
   /**
    * @dev Emitted when manufacturer burns onboarding fee and mints an NFT per station
    * This event contains the origin caller address and the token ID for the NFT
    */
-  event WeatherStationOnboarded(address indexed from, uint256 tokenId);
+  event WeatherStationOnboarded(address indexed to, uint256 tokenId);
   /**
    * @dev Emitted when a user claims a weather station and its NFT
    * This event contains the origin caller address and the token ID for the NFT in focus
    */
   event WeatherStationClaimed(address indexed from, uint256 tokenId);
-  /**
-   * @dev Emitted when a user transfers ownership of a weather station and its NFT
-   * This event contains the origin caller address and the token ID for the NFT in focus
-   */
-  event WeatherStationTransfered(address indexed from, address to, uint256 tokenId);
   /**
    * @dev Emitted when a user burns the NFT and this actions is triggered when the weather station is removed from network
    * This event contains the origin caller address and the token ID for the NFT in focus
@@ -34,12 +28,12 @@ interface IWeatherStationXM is IAccessControl, IERC721Enumerable {
   event WeatherStationBurned(address indexed from, uint256 tokenId);
 
   //NFTs actions
-  function mintWeatherStation(address recipient, string memory uri) external returns (bool);
-
-  function burn(uint256 tokenId) external;
-
-  //ops
-  function pause() external;
-
-  function unpause() external;
+  function mintWeatherStation(
+    address recipient,
+    string memory serialNum,
+    string memory model,
+    address pubKey,
+    string memory image,
+    string memory stationMetadata
+  ) external returns (bool);
 }
