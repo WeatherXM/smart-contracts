@@ -10202,9 +10202,9 @@
 						},
 					},
 				},
-				"src/WeatherStationXM.sol:WeatherStationXM": {
-					source: "src/WeatherStationXM.sol",
-					name: "WeatherStationXM",
+				"src/WeatherXMStation.sol:WeatherXMStation": {
+					source: "src/WeatherXMStation.sol",
+					name: "WeatherXMStation",
 					constructor: {
 						inputs: [
 							{ internalType: "string", name: "name", type: "string" },
@@ -11767,9 +11767,9 @@
 						},
 					},
 				},
-				"src/interfaces/IWeatherStationXM.sol:IWeatherStationXM": {
-					source: "src/interfaces/IWeatherStationXM.sol",
-					name: "IWeatherStationXM",
+				"src/interfaces/IWeatherXMStation.sol:IWeatherXMStation": {
+					source: "src/interfaces/IWeatherXMStation.sol",
+					name: "IWeatherXMStation",
 					events: {
 						"Approval(address,address,uint256)": {
 							anonymous: !1,

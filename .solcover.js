@@ -7,8 +7,8 @@ module.exports = {
 		"mocks",
 		"test",
 		"ServicePool.sol",
-		"WeatherStationXM.sol",
+		"WeatherXMStation.sol",
 		"WeatherXMLicense.sol",
-		"WeatherStationXM.sol",
+		"WeatherXMStation.sol",
 	],
 };

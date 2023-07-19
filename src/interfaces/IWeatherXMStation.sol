@@ -3,13 +3,16 @@ pragma solidity 0.8.20;
 import { IAccessControl } from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import { IERC721Enumerable } from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
-interface IWeatherStationXM is IAccessControl, IERC721Enumerable {
+interface IWeatherXMStation is IAccessControl, IERC721Enumerable {
   /**
    * @dev Custom errors
    */
   error PubKeyAlreadyExists();
   error SerialNumAlreadyExists();
   error TokenDoesNotExist();
+  error InvalidBlockNumber();
+  error BlockNumberTooOld();
+  error InvalidSignature();
 
   /**
    * @dev Emitted when manufacturer burns onboarding fee and mints an NFT per station

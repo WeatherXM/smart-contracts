@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { IWeatherStationXM } from "./interfaces/IWeatherStationXM.sol";
+import { IWeatherXMStation } from "./interfaces/IWeatherXMStation.sol";
 import { ECDSA } from "lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 import { AccessControl } from "lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
@@ -10,12 +10,16 @@ import { IERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC7
 import { ERC721Enumerable } from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { IERC165 } from "lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
 
-contract WeatherStationXM is AccessControl, ERC721, ERC721Enumerable, IWeatherStationXM {
+contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXMStation {
+  using ECDSA for bytes32;
+
   /**
    * @notice The PROVISIONER_ROLE is assigned to the BurnPool Contract.
    *  */
   bytes32 public constant PROVISIONER_ROLE = keccak256("PROVISIONER_ROLE");
   bytes32 public constant MANUFACTURER_ROLE = keccak256("MANUFACTURER_ROLE");
+
+  uint256 private signatureBlockValidityWindow;
 
   struct NFTMetadata {
     string serialNum;
@@ -80,28 +84,28 @@ contract WeatherStationXM is AccessControl, ERC721, ERC721Enumerable, IWeatherSt
     return
       abi.encodePacked(
         "{",
-        '"trait_type": "serialNum"',
-        '"value": "',
+        "\"trait_type\": \"serialNum\"",
+        "\"value\": \"",
         tokenMetadata[tokenId].serialNum,
-        '"',
+        "\"",
         "}",
         "{",
-        '"trait_type": "model"',
-        '"value": "',
+        "\"trait_type\": \"model\"",
+        "\"value\": \"",
         tokenMetadata[tokenId].model,
-        '"',
+        "\"",
         "}",
         "{",
-        '"trait_type": "pubKey"',
-        '"value": "',
+        "\"trait_type\": \"pubKey\"",
+        "\"value\": \"",
         tokenMetadata[tokenId].pubKey,
-        '"',
+        "\"",
         "}",
         "{",
-        '"trait_type": "decomissioned"',
-        '"value": "',
+        "\"trait_type\": \"decomissioned\"",
+        "\"value\": \"",
         tokenMetadata[tokenId].decomissioned,
-        '"',
+        "\"",
         "}"
       );
   }
@@ -113,22 +117,80 @@ contract WeatherStationXM is AccessControl, ERC721, ERC721Enumerable, IWeatherSt
 
     bytes memory dataURI = abi.encodePacked(
       "{",
-      '"name": "WeatherXM Station #',
+      "\"name\": \"WeatherXM Station #",
       tokenId,
-      '"',
-      '"image": "',
+      "\"",
+      "\"image\": \"",
       tokenMetadata[tokenId].image,
-      '"',
-      '"stationMetadata": "',
+      "\"",
+      "\"stationMetadata\": \"",
       tokenMetadata[tokenId].stationMetadata,
-      '"',
-      '"attributes": [',
+      "\"",
+      "\"attributes\": [",
       getNFTAttributes(tokenId),
       "]",
       "}"
     );
 
     return string(abi.encodePacked("data:application/json;base64,", Base64.encode(dataURI)));
+  }
+
+  function setSignatureValidityWindow(uint256 _signatureBlockValidityWindow) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    signatureBlockValidityWindow = _signatureBlockValidityWindow;
+  }
+
+  function transferTokenWithChip(
+    bytes calldata signatureFromChip,
+    uint256 blockNumberUsedInSig,
+    bool useSafeTransferFrom
+  ) public {
+    _transferTokenWithChip(signatureFromChip, blockNumberUsedInSig, useSafeTransferFrom);
+  }
+
+  function transferTokenWithChip(bytes calldata signatureFromChip, uint256 blockNumberUsedInSig) public {
+    transferTokenWithChip(signatureFromChip, blockNumberUsedInSig, false);
+  }
+
+  function _transferTokenWithChip(
+    bytes calldata signatureFromChip,
+    uint256 blockNumberUsedInSig,
+    bool useSafeTransferFrom
+  ) internal {
+    uint256 tokenId = _getTokenIdFromSignature(signatureFromChip, blockNumberUsedInSig);
+    if (useSafeTransferFrom) {
+      _safeTransfer(ownerOf(tokenId), _msgSender(), tokenId, "");
+    } else {
+      _transfer(ownerOf(tokenId), _msgSender(), tokenId);
+    }
+  }
+
+  function _getTokenIdFromSignature(
+    bytes calldata signatureFromChip,
+    uint256 blockNumberUsedInSig
+  ) internal view returns (uint256) {
+    if (block.number <= blockNumberUsedInSig) {
+      revert InvalidBlockNumber();
+    }
+
+    unchecked {
+      if (block.number - blockNumberUsedInSig > getMaxBlockhashValidWindow()) {
+        revert BlockNumberTooOld();
+      }
+    }
+
+    bytes32 blockHash = blockhash(blockNumberUsedInSig);
+    bytes32 signedHash = keccak256(abi.encodePacked(_msgSender(), blockHash)).toEthSignedMessageHash();
+    address chipAddr = signedHash.recover(signatureFromChip);
+
+    if (tokenByPubKey[chipAddr] != 0 || (tokenByPubKey[chipAddr] == 0 && tokenMetadata[0].pubKey == chipAddr)) {
+      return tokenByPubKey[chipAddr];
+    }
+
+    revert InvalidSignature();
+  }
+
+  function getMaxBlockhashValidWindow() public view virtual returns (uint256) {
+    return signatureBlockValidityWindow;
   }
 
   function _beforeTokenTransfer(
