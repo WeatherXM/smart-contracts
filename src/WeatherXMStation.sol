@@ -80,7 +80,7 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     return true;
   }
 
-  function getNFTAttributes(uint256 tokenId) internal view returns (bytes memory) {
+  function _getNFTAttributes(uint256 tokenId) internal view returns (bytes memory) {
     return
       abi.encodePacked(
         "{",
@@ -127,7 +127,7 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
       tokenMetadata[tokenId].stationMetadata,
       "\"",
       "\"attributes\": [",
-      getNFTAttributes(tokenId),
+      _getNFTAttributes(tokenId),
       "]",
       "}"
     );
