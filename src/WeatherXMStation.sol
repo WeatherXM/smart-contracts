@@ -9,7 +9,7 @@ import { ERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721
 import { IERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import { ERC721Enumerable } from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { IERC165 } from "lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
-import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { Strings } from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXMStation {
   using ECDSA for bytes32;
