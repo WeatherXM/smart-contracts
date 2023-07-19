@@ -11,6 +11,7 @@ import { SafeERC20Upgradeable } from "lib/openzeppelin-contracts-upgradeable/con
 import { IERC20Upgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import { AccessControlEnumerableUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlEnumerableUpgradeable.sol";
 import { IRewardPool } from "./interfaces/IRewardPool.sol";
+import { IRewardsVault } from "./interfaces/IRewardsVault.sol";
 
 /**
  * @title RewardPool contract.
@@ -41,6 +42,8 @@ contract RewardPool is
   uint256 public cycle;
   uint256 public lastRewardRootTs;
   uint256 public claimedRewards;
+  IRewardsVault public rewardsVault;
+  address public rewardsChangeTreasury;
 
   /* ========== ROLES ========== */
   bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
@@ -80,7 +83,7 @@ contract RewardPool is
     _disableInitializers();
   }
 
-  function initialize(address _token) public initializer {
+  function initialize(address _token, address _rewardsVault, address _rewardsChangeTreasury) public initializer {
     __UUPSUpgradeable_init();
     __AccessControlEnumerable_init();
     __Pausable_init();
@@ -91,6 +94,8 @@ contract RewardPool is
     _setupRole(DISTRIBUTOR_ROLE, _msgSender());
     token = IERC20Upgradeable(_token);
     lastRewardRootTs = block.timestamp;
+    rewardsVault = IRewardsVault(_rewardsVault);
+    rewardsChangeTreasury = _rewardsChangeTreasury;
   }
 
   /**
@@ -103,10 +108,23 @@ contract RewardPool is
    * @param root The root hash containing the cumulative rewards plus the daily rewards.
    * */
   function submitMerkleRoot(
-    bytes32 root
+    bytes32 root,
+    uint256 totalRewards
   ) external override onlyRole(DISTRIBUTOR_ROLE) rateLimit(1440 minutes) whenNotPaused returns (bool) {
     uint256 activeCycle = cycle;
     roots[activeCycle] = root;
+
+    uint256 balanceBefore = token.balanceOf(address(this));
+    rewardsVault.pullDailyEmissions();
+    uint256 balacneAfter = token.balanceOf(address(this));
+    uint256 delta = balacneAfter - balanceBefore;
+
+    // The rewards vault will always send as much as it has up to the daily emissions amount.
+    // If are distributing less than the daily emission send the change to the treasury.
+    if (delta > totalRewards) {
+      token.safeTransfer(rewardsChangeTreasury, delta - totalRewards);
+    }
+
     cycle++;
     emit SubmittedRootHash(cycle, root);
     return true;
