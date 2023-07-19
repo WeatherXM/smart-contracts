@@ -494,4 +494,110 @@ contract WeatherXMStationTest is Test {
 
     vm.stopPrank();
   }
+
+  function testDecommissionStation() public {
+    vm.startPrank(admin);
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum1",
+      "model1",
+      stationPubkey1,
+      "ipfs://image1",
+      "ipfs://stationMetadata1"
+    );
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum2",
+      "model2",
+      stationPubkey2,
+      "ipfs://image2",
+      "ipfs://stationMetadata2"
+    );
+
+    weatherXMStation.decommissionStation(0);
+
+    (
+      string memory serialNum,
+      string memory model,
+      address pubKey,
+      bool decomissioned,
+      string memory image,
+      string memory stationMetadata
+    ) = weatherXMStation.tokenMetadata(0);
+
+    (
+      string memory serialNum2,
+      string memory model2,
+      address pubKey2,
+      bool decomissioned2,
+      string memory image2,
+      string memory stationMetadata2
+    ) = weatherXMStation.tokenMetadata(1);
+
+    assertTrue(decomissioned);
+    assertFalse(decomissioned2);
+
+    vm.stopPrank();
+  }
+
+  function testDecommissionStationNonExistent() public {
+    vm.startPrank(admin);
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum1",
+      "model1",
+      stationPubkey1,
+      "ipfs://image1",
+      "ipfs://stationMetadata1"
+    );
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum2",
+      "model2",
+      stationPubkey2,
+      "ipfs://image2",
+      "ipfs://stationMetadata2"
+    );
+
+    vm.expectRevert(IWeatherXMStation.TokenDoesNotExist.selector);
+    weatherXMStation.decommissionStation(2);
+
+    vm.stopPrank();
+  }
+
+  function testDecommissionStationWrongCaller() public {
+    vm.startPrank(admin);
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum1",
+      "model1",
+      stationPubkey1,
+      "ipfs://image1",
+      "ipfs://stationMetadata1"
+    );
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum2",
+      "model2",
+      stationPubkey2,
+      "ipfs://image2",
+      "ipfs://stationMetadata2"
+    );
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    vm.expectRevert(
+      "AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
+    );
+    weatherXMStation.decommissionStation(2);
+
+    vm.stopPrank();
+  }
 }

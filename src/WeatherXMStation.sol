@@ -41,8 +41,12 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     super._setupRole(MANUFACTURER_ROLE, _msgSender());
   }
 
+  function getMaxBlockhashValidWindow() public view virtual returns (uint256) {
+    return signatureBlockValidityWindow;
+  }
+
   function _baseURI() internal pure override returns (string memory) {
-    return "ipfs://";
+    return "";
   }
 
   function mintWeatherStation(
@@ -139,6 +143,14 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     signatureBlockValidityWindow = _signatureBlockValidityWindow;
   }
 
+  function decommissionStation(uint256 stationId) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    if(stationId >= totalSupply()) {
+      revert TokenDoesNotExist();
+    }
+
+    tokenMetadata[stationId].decomissioned = true;
+  }
+
   function transferTokenWithChip(
     bytes calldata signatureFromChip,
     uint256 blockNumberUsedInSig,
@@ -187,10 +199,6 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     }
 
     revert InvalidSignature();
-  }
-
-  function getMaxBlockhashValidWindow() public view virtual returns (uint256) {
-    return signatureBlockValidityWindow;
   }
 
   function _beforeTokenTransfer(
