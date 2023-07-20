@@ -7,9 +7,11 @@ import { Initializable } from "lib/openzeppelin-contracts-upgradeable/contracts/
 import { UUPSUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 import { PausableUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol";
+import { SafeERC20Upgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IERC20Upgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import { AccessControlEnumerableUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlEnumerableUpgradeable.sol";
-import { IWeatherXM } from "./interfaces/IWeatherXM.sol";
 import { IRewardPool } from "./interfaces/IRewardPool.sol";
+import { IRewardsVault } from "./interfaces/IRewardsVault.sol";
 
 /**
  * @title RewardPool contract.
@@ -26,18 +28,22 @@ contract RewardPool is
   IRewardPool,
   PausableUpgradeable
 {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
+
   /* ========== LIBRARIES ========== */
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
   /* ========== STATE VARIABLES ========== */
-  IWeatherXM public token;
+  IERC20Upgradeable public token;
   mapping(address => uint256) public claims;
   mapping(uint256 => bytes32) public roots;
 
   uint256 public cycle;
-  uint256 private lastRewardRootTs;
+  uint256 public lastRewardRootTs;
   uint256 public claimedRewards;
+  IRewardsVault public rewardsVault;
+  address public rewardsChangeTreasury;
 
   /* ========== ROLES ========== */
   bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
@@ -91,7 +97,7 @@ contract RewardPool is
     _disableInitializers();
   }
 
-  function initialize(address _token) public initializer {
+  function initialize(address _token, address _rewardsVault, address _rewardsChangeTreasury) public initializer {
     __UUPSUpgradeable_init();
     __AccessControlEnumerable_init();
     __Pausable_init();
@@ -100,8 +106,10 @@ contract RewardPool is
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(UPGRADER_ROLE, _msgSender());
     _setupRole(DISTRIBUTOR_ROLE, _msgSender());
-    token = IWeatherXM(_token);
+    token = IERC20Upgradeable(_token);
     lastRewardRootTs = block.timestamp;
+    rewardsVault = IRewardsVault(_rewardsVault);
+    rewardsChangeTreasury = _rewardsChangeTreasury;
     claimWaitPeriod = 30 minutes;
   }
 
@@ -115,10 +123,23 @@ contract RewardPool is
    * @param root The root hash containing the cumulative rewards plus the daily rewards.
    * */
   function submitMerkleRoot(
-    bytes32 root
+    bytes32 root,
+    uint256 totalRewards
   ) external override onlyRole(DISTRIBUTOR_ROLE) rateLimit(1440 minutes) whenNotPaused returns (bool) {
     uint256 activeCycle = cycle;
     roots[activeCycle] = root;
+
+    uint256 balanceBefore = token.balanceOf(address(this));
+    rewardsVault.pullDailyEmissions();
+    uint256 balacneAfter = token.balanceOf(address(this));
+    uint256 delta = balacneAfter - balanceBefore;
+
+    // The rewards vault will always send as much as it has up to the daily emissions amount.
+    // If are distributing less than the daily emission send the change to the treasury.
+    if (delta > totalRewards) {
+      token.safeTransfer(rewardsChangeTreasury, delta - totalRewards);
+    }
+
     cycle++;
     emit SubmittedRootHash(cycle, root);
     return true;
@@ -194,9 +215,7 @@ contract RewardPool is
     claims[to] = claims[to].add(amount);
     claimedRewards = claimedRewards.add(amount);
     latestRequestedClaims[to].amount = 0;
-    if (!token.transfer(to, amount)) {
-      revert TransferFailed();
-    }
+    token.safeTransfer(to, amount);
     return true;
   }
 
@@ -257,9 +276,7 @@ contract RewardPool is
       latestRequestedClaims[_msgSender()].amount = 0;
       claims[_msgSender()] = claims[_msgSender()].add(amountToClaim);
       claimedRewards = claimedRewards.add(amountToClaim);
-      if (!token.transfer(_msgSender(), amountToClaim)) {
-        revert TransferFailed();
-      }
+      token.safeTransfer(_msgSender(), amountToClaim);
       emit Claimed(_msgSender(), amountToClaim);
     } else {
       revert WaitingPeriodInEffect();

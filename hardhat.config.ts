@@ -58,7 +58,7 @@ const hardhatConfig: HardhatUserConfig = {
     compilers: [{ ...compilerConfig('0.8.20') }]
   },
   preprocess: {
-    eachLine: (hre) => ({
+    eachLine: () => ({
       transform: (line: string) => {
         if (line.match(/^\s*import /i)) {
           for (const [from, to] of getRemappings()) {

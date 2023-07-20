@@ -18,7 +18,8 @@ describe.only('RewardPool', () => {
       addr6,
       addr7,
       addr8,
-      addr9
+      addr9,
+      treasury
     ] = await ethers.getSigners();
     const rewardPoolBalance = ethers.utils.parseEther('22446');
     rewards = [
@@ -40,12 +41,22 @@ describe.only('RewardPool', () => {
     const Token = await ethers.getContractFactory('WeatherXM');
     const token = await Token.deploy('WeatherXM', 'WXM');
     await token.deployed();
+    const RewardsVault = await ethers.getContractFactory('RewardsVault');
+    const rewardsVault = await RewardsVault.deploy(
+      token.address,
+      owner.address
+    );
     const RewardPool = await ethers.getContractFactory('RewardPool');
-    const rewardPool = await upgrades.deployProxy(RewardPool, [token.address], {
-      initializer: 'initialize',
-      kind: 'uups'
-    });
+    const rewardPool = await upgrades.deployProxy(
+      RewardPool,
+      [token.address, rewardsVault.address, treasury.address],
+      {
+        initializer: 'initialize',
+        kind: 'uups'
+      }
+    );
     await rewardPool.deployed();
+    await rewardsVault.connect(owner).setRewardDistributor(rewardPool.address);
     await rewardPool
       .connect(owner)
       .grantRole(
@@ -55,7 +66,7 @@ describe.only('RewardPool', () => {
     mine(2);
     mine(1);
     await token.transfer(
-      rewardPool.address,
+      rewardsVault.address,
       ethers.utils.parseEther(String(56_000_000))
     );
     return {
@@ -73,6 +84,7 @@ describe.only('RewardPool', () => {
     };
   }
   afterEach(async () => {
+    /* eslint-disable */
     const [
       owner,
       distributor,
@@ -85,6 +97,8 @@ describe.only('RewardPool', () => {
       addr8,
       addr9
     ] = await ethers.getSigners();
+    /* eslint-enable */
+
     rewards[0] = [
       await addr2.getAddress(),
       ethers.utils.parseEther(String(10.0))
@@ -100,7 +114,9 @@ describe.only('RewardPool', () => {
       const root = tree.root;
       const cycleNumber = await rewardPool.cycle();
       expect(cycleNumber.toNumber()).to.equal(0);
-      await rewardPool.connect(distributor).submitMerkleRoot(root);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)));
       const txnGetRoot = await rewardPool.connect(distributor).roots(0);
       expect(txnGetRoot).to.equal(root);
     });
@@ -111,7 +127,9 @@ describe.only('RewardPool', () => {
       );
       const tree = StandardMerkleTree.of(rewards, ['address', 'uint256']);
       const root = tree.root;
-      await rewardPool.connect(distributor).submitMerkleRoot(root);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)));
       const updatedRewards = rewards.slice();
       updatedRewards[0][1] = ethers.utils.parseEther('20.0');
       const treeUpdated = StandardMerkleTree.of(updatedRewards, [
@@ -122,7 +140,12 @@ describe.only('RewardPool', () => {
       const cycleNumber = await rewardPool.cycle();
       expect(cycleNumber.toNumber()).to.equal(1);
       await expect(
-        rewardPool.connect(distributor).submitMerkleRoot(updatedRoot)
+        rewardPool
+          .connect(distributor)
+          .submitMerkleRoot(
+            updatedRoot,
+            ethers.utils.parseEther(String(14_246))
+          )
       ).to.be.revertedWithCustomError(
         rewardPool,
         'RewardsRateLimitingInEffect'
@@ -137,7 +160,9 @@ describe.only('RewardPool', () => {
       const root = tree.root;
       const distributorRole = await rewardPool.DISTRIBUTOR_ROLE();
       await expect(
-        rewardPool.connect(addr2).submitMerkleRoot(root)
+        rewardPool
+          .connect(addr2)
+          .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)))
       ).to.be.revertedWith(
         `AccessControl: account ${addr2.address.toLocaleLowerCase()} is missing role ${distributorRole}`
       );
@@ -167,7 +192,9 @@ describe.only('RewardPool', () => {
       const root = tree.root;
       const rewardCumulativeAmount = ethers.utils.parseEther(String(10000));
       const rewardCycle = await rewardPool.cycle();
-      await rewardPool.connect(distributor).submitMerkleRoot(root);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)));
       const updatedRewards = rewards.slice();
       const updatedRewardAmount = ethers.utils.parseEther(String(20));
       updatedRewards[0][1] = updatedRewardAmount;
@@ -270,7 +297,9 @@ describe.only('RewardPool', () => {
       time.increase(86401);
       //anyone can mint
       const rewardCycleUpdated = await rewardPool.cycle();
-      await rewardPool.connect(distributor).submitMerkleRoot(updatedRoot);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)));
 
       const remainedTokensUpdated =
         await rewardPool.getRemainingAllocatedRewards(
@@ -305,7 +334,9 @@ describe.only('RewardPool', () => {
       //rewardCycle = await rewardPool.cycle();
       time.increase(86401);
       const rewardCycleUpdated = await rewardPool.cycle();
-      await rewardPool.connect(distributor).submitMerkleRoot(updatedRoot);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)));
       await expect(
         rewardPool
           .connect(distributor)
@@ -343,7 +374,9 @@ describe.only('RewardPool', () => {
       }
       const root = tree.root;
       time.increase(90000);
-      await rewardPool.connect(distributor).submitMerkleRoot(root);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)));
       const insufficientFundsRewardee = rewards[7][0];
       const insufficientFundsRewardAmount = rewards[7][1];
       for (const [i, v] of tree.entries()) {
@@ -391,7 +424,7 @@ describe.only('RewardPool', () => {
         await ethers.utils.formatUnits(String(balanceOfRewardPool), 'wei')
       ).to.equal(
         await ethers.utils.formatUnits(
-          String(ethers.utils.parseEther(String(56_000_000))),
+          String(ethers.utils.parseEther(String(14_246))),
           'wei'
         )
       );
@@ -429,7 +462,7 @@ describe.only('RewardPool', () => {
       // substraction of numbers in WEI should not result to a number with decimals
       // when this happens, substraction is made between Integers and then transform to WEI
       const remainingRewardPoolBalance = ethers.utils.parseEther(
-        String(56_000_000 - 8)
+        String(14_246 - 8)
       );
       await rewardPool
         .connect(addr2)
@@ -494,7 +527,7 @@ describe.only('RewardPool', () => {
 
       expect(poolBalance).to.be.equal(
         ethers.utils.parseEther(
-          String(56_000_000 - Number(ethers.utils.formatEther(rewardAmount)))
+          String(14_246 - Number(ethers.utils.formatEther(rewardAmount)))
         )
       );
       expect(claims).to.be.equal(withdrawalAmount);
@@ -605,9 +638,7 @@ describe.only('RewardPool', () => {
       expect(rewardeeBalance).to.be.equal(withdrawalAmount);
       expect(poolBalance).to.be.equal(
         ethers.utils.parseEther(
-          String(
-            56_000_000 - Number(ethers.utils.formatEther(withdrawalAmount))
-          )
+          String(14_246 - Number(ethers.utils.formatEther(withdrawalAmount)))
         )
       );
       expect(claims).to.be.equal(withdrawalAmount);
@@ -711,7 +742,9 @@ describe.only('RewardPool', () => {
         }
       }
       time.increase(90000);
-      await rewardPool.connect(distributor).submitMerkleRoot(updatedRoot);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)));
       const withdrawalAmount = ethers.utils.parseEther(String(20));
       await rewardPool
         .connect(addr2)
@@ -768,7 +801,7 @@ describe.only('RewardPool', () => {
       const claims = await rewardPool.claims(rewardee);
       expect(rewardeeBalance).to.be.equal(withdrawalAmount);
       expect(poolBalance).to.be.equal(
-        ethers.utils.parseEther(String(56_000_000 - 20))
+        ethers.utils.parseEther(String(14_246 * 2 - 20))
       );
       expect(claims).to.be.equal(withdrawalAmount);
     });
@@ -794,7 +827,9 @@ describe.only('RewardPool', () => {
         }
       }
       time.increase(90000);
-      await rewardPool.connect(distributor).submitMerkleRoot(updatedRoot);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)));
       await rewardPool
         .connect(addr2)
         .requestClaim(
@@ -843,7 +878,7 @@ describe.only('RewardPool', () => {
       const claims = await rewardPool.claims(rewardee);
       expect(rewardeeBalance).to.be.equal(ethers.utils.parseEther(String(8)));
       expect(poolBalance).to.be.equal(
-        ethers.utils.parseEther(String(56_000_000 - 8))
+        ethers.utils.parseEther(String(14_246 * 2 - 8))
       );
       expect(claims).to.be.equal(ethers.utils.parseEther(String(8)));
       expect(proofBalanceAfterClaim).to.be.equal(
@@ -870,7 +905,7 @@ describe.only('RewardPool', () => {
       expect(remainedTokens).to.be.equal(rewardAmount);
       const balanceOfRewardPool = await token.balanceOf(rewardPool.address);
       expect(balanceOfRewardPool).to.be.equal(
-        ethers.utils.parseEther(String(56_000_000))
+        ethers.utils.parseEther(String(14_246))
       );
       await rewardPool
         .connect(addr6)
@@ -892,7 +927,7 @@ describe.only('RewardPool', () => {
 
       expect(rewardeeBalance).to.be.equal(rewardAmount);
       expect(poolBalance).to.be.equal(
-        ethers.utils.parseEther(String(56_000_000 - 11.78))
+        ethers.utils.parseEther(String(14_246 - 11.78))
       );
       expect(claims).to.be.equal(rewardAmount);
       expect(proofBalanceAfterClaim).to.be.equal(0);
@@ -917,7 +952,7 @@ describe.only('RewardPool', () => {
         await ethers.utils.formatUnits(String(balanceOfRewardPool), 'wei')
       ).to.equal(
         await ethers.utils.formatUnits(
-          String(ethers.utils.parseEther(String(56_000_000))),
+          String(ethers.utils.parseEther(String(14_246))),
           'wei'
         )
       );
@@ -947,7 +982,7 @@ describe.only('RewardPool', () => {
         await ethers.utils.formatUnits(String(balanceOfRewardPool), 'wei')
       ).to.equal(
         await ethers.utils.formatUnits(
-          String(ethers.utils.parseEther(String(56_000_000))),
+          String(ethers.utils.parseEther(String(14_246))),
           'wei'
         )
       );
@@ -1002,7 +1037,9 @@ describe.only('RewardPool', () => {
       }
       const root = tree.root;
       time.increase(90000);
-      await rewardPool.connect(distributor).submitMerkleRoot(root);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)));
       return { rewardee, proof, rewardAmount };
     }
 
@@ -1098,7 +1135,13 @@ describe.only('RewardPool', () => {
       await expect(
         rewardPool
           .connect(distributor)
-          .transferRewards(ethers.constants.AddressZero, rewardAmount, rewardAmount, 0, proof)
+          .transferRewards(
+            ethers.constants.AddressZero,
+            rewardAmount,
+            rewardAmount,
+            0,
+            proof
+          )
       ).to.be.revertedWithCustomError(rewardPool, 'TargetAddressIsZero');
     });
 
@@ -1112,8 +1155,17 @@ describe.only('RewardPool', () => {
       await expect(
         rewardPool
           .connect(distributor)
-          .transferRewards(rewardPool.address, rewardAmount, rewardAmount, 0, proof)
-      ).to.be.revertedWithCustomError(rewardPool, 'TargetAddressIsContractAddress');
+          .transferRewards(
+            rewardPool.address,
+            rewardAmount,
+            rewardAmount,
+            0,
+            proof
+          )
+      ).to.be.revertedWithCustomError(
+        rewardPool,
+        'TargetAddressIsContractAddress'
+      );
     });
 
     it('should revert if total total rewards are 0', async () => {
@@ -1180,7 +1232,9 @@ describe.only('RewardPool', () => {
     });
 
     it('should unpause rewardpool', async () => {
-      const { rewardPool, owner } = await loadFixture(deployInitialStateFixture);
+      const { rewardPool, owner } = await loadFixture(
+        deployInitialStateFixture
+      );
 
       await rewardPool.connect(owner).pause();
 

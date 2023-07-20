@@ -81,3 +81,6 @@ scripts/config.json
 
 #gas-reporter
 gas-report.txt
+
+#editor
+.vscode
