@@ -19,16 +19,6 @@ interface IWeatherXMStation is IAccessControl, IERC721Enumerable {
    * This event contains the origin caller address and the token ID for the NFT
    */
   event WeatherStationOnboarded(address indexed to, uint256 tokenId);
-  /**
-   * @dev Emitted when a user claims a weather station and its NFT
-   * This event contains the origin caller address and the token ID for the NFT in focus
-   */
-  event WeatherStationClaimed(address indexed from, uint256 tokenId);
-  /**
-   * @dev Emitted when a user burns the NFT and this actions is triggered when the weather station is removed from network
-   * This event contains the origin caller address and the token ID for the NFT in focus
-   */
-  event WeatherStationBurned(address indexed from, uint256 tokenId);
 
   //NFTs actions
   function mintWeatherStation(
