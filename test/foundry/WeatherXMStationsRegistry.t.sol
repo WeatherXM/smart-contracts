@@ -30,10 +30,17 @@ contract WeatherXMStationsRegistryTest is Test {
   }
 
   function testContructor() public {
+    vm.startPrank(admin);
+    stationRegistryImplementaion = new WeatherXMStationsRegistry();
+    proxy = new ERC1967Proxy(address(stationRegistryImplementaion), "");
+    stationRegistry = WeatherXMStationsRegistry(address(proxy));
+    stationRegistry.initialize();
+
     assertTrue(stationRegistry.hasRole(stationRegistry.DEFAULT_ADMIN_ROLE(), admin));
     assertTrue(stationRegistry.hasRole(stationRegistry.UPGRADER_ROLE(), admin));
     assertTrue(stationRegistry.hasRole(stationRegistry.STATIONS_MANAGER_ROLE(), admin));
     assertEq(stationRegistry.getStationsLength(), 0);
+    vm.stopPrank();
   }
 
   function testAddStation() public {
@@ -262,7 +269,7 @@ contract WeatherXMStationsRegistryTest is Test {
     vm.stopPrank();
   }
 
-  function testGetStationsLength() public {
+  function testAddManyStations() public {
     vm.startPrank(admin);
 
     for(uint256 i = 0 ; i < 100 ; i++) {
@@ -270,6 +277,17 @@ contract WeatherXMStationsRegistryTest is Test {
         string.concat("model", Strings.toString(i)),
         string.concat("ipfs://", Strings.toString(i))
       );
+
+      assertEq(stationRegistry.getStationsLength(), i + 1);
+      (
+        uint256 index,
+        string memory metadataURI,
+        bool decommissioned
+      ) = stationRegistry.stations(string.concat("model", Strings.toString(i)));
+
+      assertEq(index, i);
+      assertEq(metadataURI, string.concat("ipfs://", Strings.toString(i)));
+      assertFalse(decommissioned);
     }
 
     vm.stopPrank();
