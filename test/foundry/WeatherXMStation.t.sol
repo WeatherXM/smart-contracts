@@ -129,7 +129,6 @@ contract WeatherXMStationTest is Test {
 
     assertTrue(weatherXMStation.hasRole(weatherXMStation.DEFAULT_ADMIN_ROLE(), admin));
     assertTrue(weatherXMStation.hasRole(weatherXMStation.PROVISIONER_ROLE(), admin));
-    assertTrue(weatherXMStation.hasRole(weatherXMStation.MANUFACTURER_ROLE(), admin));
 
     vm.stopPrank();
   }

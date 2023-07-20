@@ -19,7 +19,6 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
    * @notice The PROVISIONER_ROLE is assigned to the BurnPool Contract.
    *  */
   bytes32 public constant PROVISIONER_ROLE = keccak256("PROVISIONER_ROLE");
-  bytes32 public constant MANUFACTURER_ROLE = keccak256("MANUFACTURER_ROLE");
 
   uint256 private signatureBlockValidityWindow;
   IWeatherXMStationsRegistry public stationRegistry;
@@ -41,7 +40,6 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
   constructor(string memory name, string memory symbol) ERC721(name, symbol) {
     super._setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     super._setupRole(PROVISIONER_ROLE, _msgSender());
-    super._setupRole(MANUFACTURER_ROLE, _msgSender());
   }
 
   function getMaxBlockhashValidWindow() public view virtual returns (uint256) {
