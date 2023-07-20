@@ -21,6 +21,8 @@ The total amount of rewards a user can claim is stored on the latest cycle this 
 
 Whoever holds the `DISTRIBUTOR_ROLE` (which in our case will be controlled by the DAO) is able to update the Merkle root for the rewards distribution. Every time a new Merkle root is submitted a new cycle starts in the contract. New Merkle roots can only be submitted once a day.
 
+When adding a new Merkle root the caller must specify the amount of rewards that are being distributed in that cycle. The Reward Pool will try to pull the rewards from the Reward's vault, if that fails the transaction will revert. The Reward's vault will send as much as it can up to the daily emission amount (as described in the whitepaper). If the Reward's vault send more than what is being distributed the difference will be send to the rewards distribution change treasury.
+
 ## Rewards Claiming
 
 Rewards are claimed in two steps. This is done to allow time to react (pause) in case a bug/misconfiguration is noticed during claiming.
