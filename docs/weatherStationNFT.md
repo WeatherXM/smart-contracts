@@ -22,7 +22,7 @@ struct NFTMetadata {
   string stationMetadata;
 }
 ```
-The `serialNum`, `model` and `pubKey` fields are immutable. The `serialNum` must also be unique and this is enforced by the contract.
+The `serialNum`, `model` and `pubKey` fields are immutable. The `serialNum` and `pubKey` must also be unique and this is enforced by the contract.
 
 ## Minting
 
