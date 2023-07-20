@@ -10,5 +10,6 @@ module.exports = {
 		"WeatherStationXM.sol",
 		"WeatherXMLicense.sol",
 		"RewardsVault.sol",
+		"WeatherXMStationsRegistry"
 	],
 };
