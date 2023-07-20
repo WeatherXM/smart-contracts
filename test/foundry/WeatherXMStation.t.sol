@@ -3,14 +3,20 @@ pragma solidity 0.8.20;
 
 import { Test } from "forge-std/Test.sol";
 import { WeatherXMStation } from "src/WeatherXMStation.sol";
+import { WeatherXMStationsRegistry } from "src/WeatherXMStationsRegistry.sol";
 import { IWeatherXMStation } from "src/interfaces/IWeatherXMStation.sol";
+import { IWeatherXMStationsRegistry } from "src/interfaces/IWeatherXMStationsRegistry.sol";
 import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { ERC1967Proxy } from "lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 //solhint-disable-next-line no-console
 import { console } from "forge-std/console.sol";
 
 contract WeatherXMStationTest is Test {
   WeatherXMStation internal weatherXMStation;
+  WeatherXMStationsRegistry internal stationRegistryImplementaion;
+  WeatherXMStationsRegistry internal stationRegistry;
+  ERC1967Proxy public proxy;
   address internal admin = address(0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
   address internal alice;
   address internal bob;
@@ -90,7 +96,14 @@ contract WeatherXMStationTest is Test {
   function setUp() public {
     vm.startPrank(admin);
     vm.deal(admin, 1 ether);
+    stationRegistryImplementaion = new WeatherXMStationsRegistry();
+    proxy = new ERC1967Proxy(address(stationRegistryImplementaion), "");
+    stationRegistry = WeatherXMStationsRegistry(address(proxy));
+    stationRegistry.initialize();
     weatherXMStation = new WeatherXMStation("WeatherXM Station", "WXM_STATION");
+    weatherXMStation.setStationRegistry(IWeatherXMStationsRegistry(stationRegistry));
+    stationRegistry.addStation("model1", "meta1");
+    stationRegistry.addStation("model2", "meta2");
     alice = address(0x1);
     vm.label(alice, "Alice");
     bob = address(0x2);
@@ -304,6 +317,40 @@ contract WeatherXMStationTest is Test {
       "serialNum1",
       "model1",
       stationPubkey3,
+      "ipfs://image-uri",
+      "ipfs://station-metadata"
+    );
+
+    vm.stopPrank();
+  }
+
+  function testMintWeatherStationInvalidModel() public {
+    vm.startPrank(admin);
+
+    vm.expectRevert(IWeatherXMStation.InvalidStationModel.selector);
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum1",
+      "model3",
+      stationPubkey1,
+      "ipfs://image-uri",
+      "ipfs://station-metadata"
+    );
+
+    vm.stopPrank();
+  }
+
+  function testMintWeatherStationInvalidDecommissionModel() public {
+    vm.startPrank(admin);
+
+    stationRegistry.setDecommissioned("model2", true);
+
+    vm.expectRevert(IWeatherXMStation.StationModelIsDecommissioned.selector);
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum1",
+      "model2",
+      stationPubkey1,
       "ipfs://image-uri",
       "ipfs://station-metadata"
     );

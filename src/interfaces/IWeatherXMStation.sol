@@ -13,6 +13,8 @@ interface IWeatherXMStation is IAccessControl, IERC721Enumerable {
   error InvalidBlockNumber();
   error BlockNumberTooOld();
   error InvalidSignature();
+  error InvalidStationModel();
+  error StationModelIsDecommissioned();
 
   /**
    * @dev Emitted when manufacturer burns onboarding fee and mints an NFT per station

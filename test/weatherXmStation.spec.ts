@@ -1,4 +1,4 @@
-import { ethers, config } from 'hardhat';
+import { ethers, config, upgrades } from 'hardhat';
 import { expect } from 'chai';
 import Web3 from 'web3'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
@@ -22,6 +22,16 @@ describe('WeatherXMStation', () => {
     const station2Wallet = ethers.Wallet.fromMnemonic(accounts.mnemonic, accounts.path + '/5');
     const station2PrivKey = station2Wallet.privateKey
 
+    const WeatherXMStationsRegistry = await ethers.getContractFactory('WeatherXMStationsRegistry');
+    const stationRegistry = await upgrades.deployProxy(
+      WeatherXMStationsRegistry,
+      [],
+      {
+        initializer: 'initialize',
+        kind: 'uups'
+      }
+    );
+    await stationRegistry.deployed();
 
     const WeatherXMStation = await ethers.getContractFactory(
       'WeatherXMStation'
@@ -30,6 +40,8 @@ describe('WeatherXMStation', () => {
       'WeatherXMStation',
       'WXM_STATION'
     );
+    await weatherXMStation.setStationRegistry(stationRegistry.address);
+    await stationRegistry.addStation("model1", "meta-1");
 
     return {
       weatherXMStation,

@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 import { IWeatherXMStation } from "./interfaces/IWeatherXMStation.sol";
+import { IWeatherXMStationsRegistry } from "./interfaces/IWeatherXMStationsRegistry.sol";
 import { ECDSA } from "lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 import { AccessControl } from "lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 import { Base64 } from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
@@ -21,6 +22,7 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
   bytes32 public constant MANUFACTURER_ROLE = keccak256("MANUFACTURER_ROLE");
 
   uint256 private signatureBlockValidityWindow;
+  IWeatherXMStationsRegistry public stationRegistry;
 
   struct NFTMetadata {
     string serialNum;
@@ -68,6 +70,7 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     ) {
       revert SerialNumAlreadyExists();
     }
+    _checkValidStationModel(model);
 
     uint256 newItemId = totalSupply();
     tokenMetadata[newItemId].serialNum = serialNum;
@@ -83,6 +86,18 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     emit WeatherStationOnboarded(recipient, newItemId);
 
     return true;
+  }
+
+  function _checkValidStationModel(string memory model) internal {
+    if(!stationRegistry.stationExists(model)) {
+      revert InvalidStationModel();
+    }
+
+    (,,bool decommissioned) = stationRegistry.stations(model);
+
+    if(decommissioned) {
+      revert StationModelIsDecommissioned();
+    }
   }
 
   function _getNFTAttributes(uint256 tokenId) internal view returns (bytes memory) {
@@ -162,6 +177,10 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
 
   function transferTokenWithChip(bytes calldata signatureFromChip, uint256 blockNumberUsedInSig) public {
     transferTokenWithChip(signatureFromChip, blockNumberUsedInSig, false);
+  }
+
+  function setStationRegistry(IWeatherXMStationsRegistry _stationRegistry) public onlyRole(PROVISIONER_ROLE) {
+    stationRegistry = _stationRegistry;
   }
 
   function _transferTokenWithChip(
