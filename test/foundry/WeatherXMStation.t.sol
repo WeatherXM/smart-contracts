@@ -668,4 +668,162 @@ contract WeatherXMStationTest is Test {
 
     vm.stopPrank();
   }
+
+  function testUpdateTokenMetadataAndImage() public {
+    vm.startPrank(admin);
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum1",
+      "model1",
+      stationPubkey1,
+      "ipfs://image1",
+      "ipfs://stationMetadata1"
+    );
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum2",
+      "model2",
+      stationPubkey2,
+      "ipfs://image2",
+      "ipfs://stationMetadata2"
+    );
+
+    weatherXMStation.updateTokenMetadataAndImage(1, "ipfs://image2-update", "ipfs://stationMetadata2-update");
+
+    (
+      string memory serialNum1,
+      string memory model1,
+      address pubKey1,
+      bool decomissioned1,
+      string memory image1,
+      string memory stationMetadata1
+    ) = weatherXMStation.tokenMetadata(0);
+
+    assertEq(serialNum1, "serialNum1");
+    assertEq(model1, "model1");
+    assertEq(stationPubkey1, pubKey1);
+    assertFalse(decomissioned1);
+    assertEq(image1, "ipfs://image1");
+    assertEq(stationMetadata1, "ipfs://stationMetadata1");
+
+    (
+      string memory serialNum2,
+      string memory model2,
+      address pubKey2,
+      bool decomissioned2,
+      string memory image2,
+      string memory stationMetadata2
+    ) = weatherXMStation.tokenMetadata(1);
+
+    assertEq(serialNum2, "serialNum2");
+    assertEq(model2, "model2");
+    assertEq(stationPubkey2, pubKey2);
+    assertFalse(decomissioned2);
+    assertEq(image2, "ipfs://image2-update");
+    assertEq(stationMetadata2, "ipfs://stationMetadata2-update");
+  }
+
+  function testUpdateTokenMetadataAndImageNonExistentToken() public {
+    vm.startPrank(admin);
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum1",
+      "model1",
+      stationPubkey1,
+      "ipfs://image1",
+      "ipfs://stationMetadata1"
+    );
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum2",
+      "model2",
+      stationPubkey2,
+      "ipfs://image2",
+      "ipfs://stationMetadata2"
+    );
+
+    vm.expectRevert(IWeatherXMStation.TokenDoesNotExist.selector);
+    weatherXMStation.updateTokenMetadataAndImage(3, "ipfs://image2-update", "ipfs://stationMetadata2-update");
+
+    vm.stopPrank();
+  }
+
+  function testUpdateTokenMetadataAndImageWrongCaller() public {
+    vm.startPrank(admin);
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum1",
+      "model1",
+      stationPubkey1,
+      "ipfs://image1",
+      "ipfs://stationMetadata1"
+    );
+
+    weatherXMStation.mintWeatherStation(
+      manufacturer,
+      "serialNum2",
+      "model2",
+      stationPubkey2,
+      "ipfs://image2",
+      "ipfs://stationMetadata2"
+    );
+
+    vm.stopPrank();
+    vm.startPrank(alice);
+
+    vm.expectRevert(
+      "AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x7670093c8396cecff5862296425346d7a6801611a244bd9f8f5b7132e94d46df"
+    );
+    weatherXMStation.updateTokenMetadataAndImage(3, "ipfs://image2-update", "ipfs://stationMetadata2-update");
+
+    vm.stopPrank();
+  }
+
+  function testSetStationRegistry() public {
+    vm.startPrank(admin);
+
+    assertEq(address(weatherXMStation.stationRegistry()), address(stationRegistry));
+
+    weatherXMStation.setStationRegistry(IWeatherXMStationsRegistry(alice));
+
+    assertEq(address(weatherXMStation.stationRegistry()), alice);
+
+    vm.stopPrank();
+  }
+
+
+  function testSetStationWrongCaller() public {
+    vm.startPrank(alice);
+
+    assertEq(address(weatherXMStation.stationRegistry()), address(stationRegistry));
+
+    vm.expectRevert(
+      "AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x7670093c8396cecff5862296425346d7a6801611a244bd9f8f5b7132e94d46df"
+    );
+    weatherXMStation.setStationRegistry(IWeatherXMStationsRegistry(bob));
+
+    assertEq(address(weatherXMStation.stationRegistry()), address(stationRegistry));
+
+    vm.stopPrank();
+  }
+
+  function testSetStationWrongCallerSetYourSelf() public {
+    vm.startPrank(alice);
+
+    assertEq(address(weatherXMStation.stationRegistry()), address(stationRegistry));
+
+    vm.expectRevert(
+      "AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x7670093c8396cecff5862296425346d7a6801611a244bd9f8f5b7132e94d46df"
+    );
+    weatherXMStation.setStationRegistry(IWeatherXMStationsRegistry(alice));
+
+    assertEq(address(weatherXMStation.stationRegistry()), address(stationRegistry));
+
+    vm.stopPrank();
+  }
 }

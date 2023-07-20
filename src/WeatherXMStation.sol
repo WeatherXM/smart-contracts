@@ -181,6 +181,15 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     stationRegistry = _stationRegistry;
   }
 
+  function updateTokenMetadataAndImage(uint256 stationId, string memory image, string memory metadata) public onlyRole(PROVISIONER_ROLE) {
+    if(stationId >= totalSupply()) {
+      revert TokenDoesNotExist();
+    }
+
+    tokenMetadata[stationId].image = image;
+    tokenMetadata[stationId].stationMetadata = metadata;
+  }
+
   function _transferTokenWithChip(
     bytes calldata signatureFromChip,
     uint256 blockNumberUsedInSig,
