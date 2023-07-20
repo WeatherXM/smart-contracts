@@ -26,7 +26,7 @@ contract WeatherXMStationsRegistry is
   string[] public stationIndex;
 
   modifier validStation(string memory model) {
-    if (!_stationExists(model)) {
+    if (!stationExists(model)) {
       revert InvalidStation();
     }
     _;
@@ -53,7 +53,7 @@ contract WeatherXMStationsRegistry is
    * @param metadataURI The uri pointing to the station model metadata
    */
   function addStation(string memory model, string memory metadataURI) public onlyRole(STATIONS_MANAGER_ROLE) {
-    if (_stationExists(model)) {
+    if (stationExists(model)) {
       revert StationAlreadyExists();
     }
 
@@ -100,7 +100,7 @@ contract WeatherXMStationsRegistry is
    * @notice Evaluate whether the station or not.
    * @param _model The stations identifier for the station to be evaluated.
    */
-  function _stationExists(string memory _model) internal view returns (bool) {
+  function stationExists(string memory _model) public view returns (bool) {
     if (stationIndex.length == 0) return false;
     return (keccak256(abi.encodePacked(stationIndex[stations[_model].index])) == keccak256(abi.encodePacked(_model)));
   }
