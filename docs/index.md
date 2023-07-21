@@ -488,7 +488,7 @@ Normally, this function will use an xref:access.adoc[access control] modifier su
 function _authorizeUpgrade(address) internal override onlyOwner {}
 ```_
 
-## WeatherStationXM
+## WeatherXMStation
 
 ### PROVISIONER_ROLE
 
@@ -1056,7 +1056,7 @@ function pause() external
 function unpause() external
 ```
 
-## IWeatherStationXM
+## IWeatherXMStation
 
 ### RecipientIsContractAddress
 
