@@ -1,0 +1,14 @@
+ci/cd:
+  - .github/workflows/*
+
+documentation:
+  - README.md
+  - ./*.md
+  - docs/*.md
+
+smart-contracts:
+  - src/*.sol
+
+testing:
+  - test/*.sol
+  - test/*.ts
