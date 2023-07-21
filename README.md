@@ -17,7 +17,7 @@ This repo contains all contracts and tests relevant to WeatherXM network. Weathe
 As more logic is transferred into smart contracts, a need for grouping of functionality and modularity emerges. That is why multiple Smart Contracts are now created, each with its own logic and design patterns:
 
 - [WeatherXM](./docs/weatherxm)
-- WeatherStationXM
+- WeatherXMStation
 - [RewardPool](./docs/rewardpool)
 - [ServicePool](./docs/servicepool)
 

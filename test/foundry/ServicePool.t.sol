@@ -6,8 +6,6 @@ import { DSTest } from "ds-test/test.sol";
 import { Test } from "forge-std/Test.sol";
 import { WeatherXM } from "src/WeatherXM.sol";
 import { ServicePool } from "src/ServicePool.sol";
-import { WeatherStationXM } from "src/WeatherStationXM.sol";
-import { IWeatherStationXM } from "src/interfaces/IWeatherStationXM.sol";
 import { ServicePoolV2 } from "src/mocks/utils/ServicePoolV2.test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { IWeatherXM } from "src/interfaces/IWeatherXM.sol";
@@ -22,7 +20,6 @@ contract ServicePoolTest is Test {
   MintableERC20 public usdc;
   MintableERC20 public usdt;
   IServicePool public servicePoolImplementation;
-  IWeatherStationXM public weatherStationXM;
   address internal alice;
   address internal bob;
   address internal owner;
