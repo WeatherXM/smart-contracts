@@ -20,3 +20,4 @@ After day 1,095 (3 years after the launch), the Company will receive no more rew
 Note that there is no end date for token issuance. On any given day (after day 1,095), if the total supply is less than 100 million, then 14K new tokens will be issued.
 
 At this rate, a total of 100 million tokens would be issued in ~10 years. However, since tokens are also burned, reaching the maximum supply cap will take longer than 10 years.
+

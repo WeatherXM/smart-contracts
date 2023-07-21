@@ -1,13 +1,15 @@
 # WeatherXM
+
 [![CI](https://github.com/WeatherXM/smart-contracts-v2/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/WeatherXM/smart-contracts-v2/actions/workflows/ci.yml)
 [![Coverage](https://github.com/WeatherXM/smart-contracts-v2/actions/workflows/coverage.yml/badge.svg?branch=feat%2Fadd-coverage-badges)](https://github.com/WeatherXM/smart-contracts-v2/actions/workflows/coverage.yml)
+
 
 This repo contains all contracts and tests relevant to WeatherXM network. WeatherXM is a community powered weather network, that rewards weather station owners and provides accurate weather services to Web3 enterprises.
 
 ## Branches
 
 - `releases` contain complete, tested and audited contract code, generally on mainnet
-- `main` contains complete, tested and audited contract code, generally on mumbai, to support beta users
+- `main` contains complete, tested and audited contract code
 - `develop` is for the pre-release code, with new features, not yet audited
 
 ## Architecture
@@ -20,6 +22,7 @@ As more logic is transferred into smart contracts, a need for grouping of functi
 - [ServicePool](./docs/servicepool)
 
 Diagrams illustrating the interaction among the smart contracts, storage slots, classes, etc can be found in [diagrams](./docs/diagrams).
+
 
 ### Assumptions
 
@@ -44,7 +47,7 @@ Diagrams illustrating the interaction among the smart contracts, storage slots, 
 
 ### Merkle Tree and Claiming Rewards
 
-You may find more info about the implementation of Merkle Tree and the procedure which enables claiming of rewards in the [docs](./docs/merkle_tree.md).
+You may find more info about the implementation of Merkle Tree and the procedure which enables claiming of rewards in the [Merkle Tree](./docs/merkle_tree.md).
 
 ### Supply-And-Demand Equilibrium
 
