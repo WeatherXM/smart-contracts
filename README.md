@@ -17,8 +17,11 @@ This repo contains all contracts and tests relevant to WeatherXM network. Weathe
 As more logic is transferred into smart contracts, a need for grouping of functionality and modularity emerges. That is why multiple Smart Contracts are now created, each with its own logic and design patterns:
 
 - [WeatherXM](./docs/weatherxm)
-- WeatherXMStation
+- [WeatherXMStation](./docs/weatherStationNFT.md)
+- [WeatherXMStationRegistry](./docs/weatherstationsregistry.md)
+- [WeatherXMLicense](./docs/weatherxmlicense.md)
 - [RewardPool](./docs/rewardpool)
+- [RewardVault](./docs/rewardvault.md)
 - [ServicePool](./docs/servicepool)
 
 Diagrams illustrating the interaction among the smart contracts, storage slots, classes, etc can be found in [diagrams](./docs/diagrams).
@@ -32,16 +35,18 @@ Diagrams illustrating the interaction among the smart contracts, storage slots, 
 
 ### Rules
 
-- Fund RewardPool every day with the daily amount of rewards to be claimed ([Token Emissions](./docs/emissions.md)).
+- Fund RewardPool every day with the daily emission which follows the ([Token Emissions](./docs/emissions.md))
+- The RewardPool distributor is responsible and authorized to pull the daily emission from the RewardVault
+- The release schedule which is followed by the RewardVault cannot be changed
 - The daily rewards are calculated externally by the rewarding mechanism and then a merkle tree root hash is submitted to the RewardPool
-- Submitting the root hash once per day.
-- Tokens in circulation should never be more than maximum supply (100M).
-- The total sum of tokens in the RewardPool must always be enough for everyone to claim their full allocation.
-- Available rewards to be claimed for each user are calculated based on the parameters, cumulative amount, the user's wallet address, the cycle and the Merkle proof and the amount of rewards already claimed.
-- A user cannot claim more than their toal allocated rewards in the RewardPool.
+- Submitting the root hash once per day
+- Tokens in circulation should never be more than maximum supply (100M)
+- The total sum of tokens in the RewardPool must always be enough for everyone to claim their full allocation
+- Available rewards to be claimed for each user are calculated based on the parameters: `cumulative amount`, `the user's wallet address`, `the cycle`, `the Merkle proof` (for the chosen cycle) and `the amount of rewards already claimed`
+- A user cannot claim more than their toal allocated rewards in the RewardPool
 - The maximum amount a user can claim is constrained by the chosen cycle and the provided Merkle proof, so it is advised to use the proof for the latest cycle.
-- In each cycle, each user has only one valid proof.
-- Anyone can buy services through the ServicePool contract.
+- In each cycle, each user has only one valid proof
+- Anyone can buy services through the ServicePool contract
 - Proof of purchase (a transaction hash of the transaction from the service purchase through ServicePool) is required for the provision of services
 - The remaining tokens from the rewarding fo all weather stations in a daily basis are transferred to the [Bussiness Development pool](./docs/pools.md)
 
