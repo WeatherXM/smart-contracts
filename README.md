@@ -42,11 +42,14 @@ Diagrams illustrating the interaction among the smart contracts, storage slots, 
 - Submitting the root hash once per day
 - Tokens in circulation should never be more than maximum supply (100M)
 - The total sum of tokens in the RewardPool must always be enough for everyone to claim their full allocation
+- Before making a claim, every user needs to request a specific amount of WXM. Once the request is made, there will be a short predetermined waiting period before claiming becomes enabled 
 - Available rewards to be claimed for each user are calculated based on the parameters: `cumulative amount`, `the user's wallet address`, `the cycle`, `the Merkle proof` (for the chosen cycle) and `the amount of rewards already claimed`
 - A user cannot claim more than their toal allocated rewards in the RewardPool
 - The maximum amount a user can claim is constrained by the chosen cycle and the provided Merkle proof, so it is advised to use the proof for the latest cycle.
+- The Merkle tree containing all required information for claiming will be published on IPFS
 - In each cycle, each user has only one valid proof
 - Anyone can buy services through the ServicePool contract
+- The weather-related services can be purchased from ServicePool using WXM or a basetoken such as USDC which will be decided upon deployement
 - Proof of purchase (a transaction hash of the transaction from the service purchase through ServicePool) is required for the provision of services
 - The remaining tokens from the rewarding fo all weather stations in a daily basis are transferred to the [Bussiness Development pool](./docs/pools.md)
 
