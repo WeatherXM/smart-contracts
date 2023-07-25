@@ -5,7 +5,7 @@ import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 
-describe.only('RewardPool', () => {
+describe('RewardPool', () => {
   let rewards: [string, BigNumber][];
   async function deployInitialStateFixture() {
     const [
