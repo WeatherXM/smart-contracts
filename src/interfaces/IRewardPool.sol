@@ -13,6 +13,9 @@ interface IRewardPool {
   error TransferFailed();
   error TargetAddressIsZero();
   error TargetAddressIsContractAddress();
+  error NoRequestClaim();
+  error WaitingPeriodInEffect();
+
   /**
    * @dev Emitted when root hash is submitted
    * This event contains the root hash and the cycle indicated when it was submitted
@@ -34,6 +37,12 @@ interface IRewardPool {
    */
   event BusinessDevTokensTransferred(address indexed to, uint256 amount);
 
+  /**
+   @dev Emitted when a user wants to claim rewards
+   * This event contains the address of the requester and the amount
+   */
+  event RequestClaim(address indexed from, uint256 amount);
+
   //root hash submission
   function submitMerkleRoot(bytes32 root, uint256 totalRewards) external returns (bool);
 
@@ -46,8 +55,12 @@ interface IRewardPool {
     bytes32[] calldata proof
   ) external returns (bool);
 
+  function requestClaim(uint256 _amount, uint256 _totalRewards, uint256 _cycle, bytes32[] calldata proof) external;
+
   // user functions
-  function claim(uint256 amount, uint256 totalRewards, uint256 cycle, bytes32[] calldata proof) external;
+  function claim() external;
+
+  function updateClaimWaitPeriod(uint _claimWaitPeriod) external;
 
   function getRemainingAllocatedRewards(
     address account,
