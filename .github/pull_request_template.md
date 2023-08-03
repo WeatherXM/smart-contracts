@@ -1,20 +1,30 @@
-## Problem Description
+# Proposed changes
 
-<!-- Provide a brief overview of the changes introduced by this pull request. -->
+**Description:**
 
-## Solution
+_<Describe the big picture of your changes here>_
 
-<!-- Describe the specific changes made in this pull request. -->
+## Types of changes
 
-## Related Issues
+What types of changes does your code introduce?
+_Put an `x` in the boxes that apply_
 
-<!-- If this pull request is related to any existing issues, reference them here using the GitHub issue syntax (e.g., "Fixes #123"). -->
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Bugfix (non-breaking change which fixes an issue)
+- [ ] Refactoring (non-breaking change that improves the code quality)
+- [ ] Breaking change (fix or feature that would cause existing functionality not to work as expected)
+- [ ] Documentation Update (if none of the other choices applies)
 
 ## Checklist
 
-Please make sure to review and check the following before submitting the pull request:
+_Put an `x` in the boxes that apply. You can also fill these out after creating the PR. This is simply a reminder of what we are going to look for before merging your code._
 
-- [ ] Unit tests are added or modified to cover the changes.
-- [ ] Documentation has been updated to reflect the changes.
+- [ ] **Tests**
+  - [ ] For Code Changes: I have added unit tests that prove my fix is valid or that my feature works
+- [ ] **Documentation** - I have added necessary documentation (if appropriate)
+  - [ ] **Repo Documentation** - I have updated the `README.md` file
+- [ ] **Dependency Check** - I have confirmed that any dependent changes have been merged and published.
 
-<!-- Feel free to add any additional sections or checklist items specific to your project's needs. -->
+## Further comments
+
+_<If this is a relatively large or complex change, kick off the discussion by explaining why you chose the solution you did and what alternatives you considered, etc.>_
