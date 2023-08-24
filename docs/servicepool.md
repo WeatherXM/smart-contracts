@@ -20,7 +20,7 @@ This contract maintains a service catalog of the available services, service ide
 
 ## Purchasing services
 
-Services can be purchased with either a designated basePaymentToken `(function purchaseService(uint256 amount, uint256 duration, string memory serviceID) )` or using WXM through `(function purchaseService(uint256 duration, string memory serviceID))`.
+Services can be purchased with either a designated basePaymentToken `(function purchaseService(uint256 duration, string memory serviceID))` or using WXM through `(function purchaseService(uint256 amount, uint256 duration, string memory serviceID))`.
 
 The prices in the service catalog are denominated in the basePaymentToken.
 
