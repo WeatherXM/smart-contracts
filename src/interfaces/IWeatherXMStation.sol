@@ -15,6 +15,7 @@ interface IWeatherXMStation is IAccessControl, IERC721Enumerable {
   error InvalidSignature();
   error InvalidStationModel();
   error StationModelIsDecommissioned();
+  error BlockValidityWindowTooBig();
 
   /**
    * @dev Emitted when manufacturer burns onboarding fee and mints an NFT per station

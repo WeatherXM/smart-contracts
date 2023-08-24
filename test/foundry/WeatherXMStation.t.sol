@@ -826,4 +826,34 @@ contract WeatherXMStationTest is Test {
 
     vm.stopPrank();
   }
+
+  function testSetSignatureValidityWindow() public {
+    vm.startPrank(admin);
+
+    weatherXMStation.setSignatureValidityWindow(100);
+
+    assertEq(weatherXMStation.signatureBlockValidityWindow(), 100);
+
+    vm.stopPrank();
+  }
+
+  function testSetSignatureValidityWindowWrongCaller() public {
+    vm.startPrank(alice);
+
+    vm.expectRevert(
+      "AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
+    );
+    weatherXMStation.setSignatureValidityWindow(100);
+
+    vm.stopPrank();
+  }
+
+  function testSetSignatureValidityWindowInvalidBlockWindow() public {
+    vm.startPrank(admin);
+
+    vm.expectRevert(IWeatherXMStation.BlockValidityWindowTooBig.selector);
+    weatherXMStation.setSignatureValidityWindow(257);
+
+    vm.stopPrank();
+  }
 }
