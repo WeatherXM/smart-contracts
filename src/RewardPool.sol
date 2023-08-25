@@ -49,6 +49,8 @@ contract RewardPool is
   bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
+  uint public constant MAX_CLAIM_WAIT_PERIOD = 3600;
+
   struct RequestedClaim {
     uint amount;
     uint time;
@@ -287,6 +289,10 @@ contract RewardPool is
    * @notice Update claim wait period.
    * */
   function updateClaimWaitPeriod(uint _claimWaitPeriod) external override onlyRole(DISTRIBUTOR_ROLE) {
+    if (_claimWaitPeriod > MAX_CLAIM_WAIT_PERIOD) {
+      revert AboveMaxCalimWaitPeriod();
+    }
+
     claimWaitPeriod = _claimWaitPeriod;
   }
 

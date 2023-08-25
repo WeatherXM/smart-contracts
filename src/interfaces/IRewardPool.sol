@@ -15,6 +15,7 @@ interface IRewardPool {
   error TargetAddressIsContractAddress();
   error NoRequestClaim();
   error WaitingPeriodInEffect();
+  error AboveMaxCalimWaitPeriod();
 
   /**
    * @dev Emitted when root hash is submitted
