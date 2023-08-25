@@ -1,7 +1,7 @@
-const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
-const WXM_DAO_TREASURY = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
-const DAILY_REWARDS_CHANGE_TREASURY = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
-const REWARDS_AMOUNT = '55000'
+const USDC = ''
+const WXM_DAO_TREASURY = ''
+const DAILY_REWARDS_CHANGE_TREASURY = ''
+const REWARDS_AMOUNT = ''
 
 module.exports = async ({deployments}) => {
   const {deploy, execute} = deployments
