@@ -236,7 +236,7 @@ contract ServicePool is
     delete serviceCatalog[_serviceId];
     emit DeletedService(_serviceId, indexToDelete);
 
-    // If array length is 0 it means it only had one elemnt
+    // If array length is 0 it means it only had one element
     if (serviceIndex.length > 0) {
       emit UpdatedService(
         serviceIndex[indexToDelete],
