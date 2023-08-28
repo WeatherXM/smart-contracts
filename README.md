@@ -138,3 +138,19 @@ Feel free to dive in! [Open](https://github.com/WeatherXM/smart-contracts/issues
 - [Chainlink](https://github.com/smartcontractkit/chainlink)
 - [Murky](https://github.com/dmfxyz/murky)
 - [Solidity-RLP](https://github.com/hamdiallam/Solidity-RLP)
+
+## Deployment
+
+In the file `deploy/mainnet.js` fill in the missing addresses:
+- Line 1: The address fo the USDC or in general the stablecoin to be used for service purchasing
+- Line 2: The DAO treasury address that will receive the payments
+- Line 3: The treasury address that will receive the change from the daily rewards distribution
+- LIne 4: The amount of WXM (In the highest (ETH) denomination) to be initially sent to the reward pool
+
+In `hardhat.config.js` fill in the network on which you want to deploy and the private key of the deployer
+
+From the root of the project run:
+1. `npm install`
+2. `npx hardhat deploy --tags mainnet --network <the name of the network as you set it in hardhat config>`
+
+After the deployment finishes a deployment file will be created in the deployments folder in the path `deployments/<network_name>`. This folder must be committed.

@@ -1,17 +1,26 @@
-const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const USDC = ''
 const WXM_DAO_TREASURY = ''
+const DAILY_REWARDS_CHANGE_TREASURY = ''
+const REWARDS_AMOUNT = ''
 
 module.exports = async ({deployments}) => {
-  const {deploy} = deployments;
-  const [deployer] = await ethers.getSigners();
+  const {deploy, execute} = deployments
+  const [deployer] = await ethers.getSigners()
 
   const token = await deploy('WeatherXM', {
     from: deployer.address,
     args: ['WeatherXM', 'WXM'],
     log: true,
-  });
+  })
 
-  await deploy('RewardPool', {
+  const rewardVault = await deploy('RewardsVault', {
+    from: deployer.address,
+    args: [token.address, deployer.address],
+    log: true,
+  })
+
+
+  const rewardPool = await deploy('RewardPool', {
     from: deployer.address,
     log: true,
     proxy: {
@@ -21,12 +30,28 @@ module.exports = async ({deployments}) => {
         init: {
           methodName: 'initialize',
           args: [
-            token.address
+            token.address,
+            rewardVault.address,
+            DAILY_REWARDS_CHANGE_TREASURY
           ]
         }
       }
     }
-  });
+  })
+
+  await execute(
+    'RewardsVault',
+    {from: deployer.address, log: true},
+    'setRewardDistributor',
+    rewardPool.address
+  )
+  await execute(
+    'WeatherXM',
+    {from: deployer.address, log: true},
+    'transfer',
+    rewardVault.address,
+    ethers.utils.parseUnits(REWARDS_AMOUNT, 'ether')
+  )
 
   await deploy('ServicePool', {
     from: deployer.address,
@@ -45,7 +70,7 @@ module.exports = async ({deployments}) => {
         }
       }
     }
-  });
-};
+  })
+}
 
-module.exports.tags = ['mainnet'];
+module.exports.tags = ['mainnet']
