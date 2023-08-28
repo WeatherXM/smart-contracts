@@ -8,7 +8,7 @@ interface IServicePool {
   error AmountRequestedIsZero();
   error InvalidServiceId();
   error ServiceIdAlreadyExists();
-  error BellowMOQ();
+  error BelowMOQ();
 
   /**
    * @dev Emitted when `from` burns a specific amount of WXM in order to receive the `service`

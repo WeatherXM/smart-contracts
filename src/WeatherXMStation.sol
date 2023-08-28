@@ -20,7 +20,7 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
    *  */
   bytes32 public constant PROVISIONER_ROLE = keccak256("PROVISIONER_ROLE");
 
-  uint256 private signatureBlockValidityWindow;
+  uint256 public signatureBlockValidityWindow;
   IWeatherXMStationsRegistry public stationRegistry;
 
   struct NFTMetadata {
@@ -86,7 +86,7 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     return true;
   }
 
-  function _checkValidStationModel(string memory model) internal {
+  function _checkValidStationModel(string memory model) internal view {
     if(!stationRegistry.stationExists(model)) {
       revert InvalidStationModel();
     }
@@ -154,6 +154,10 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
   }
 
   function setSignatureValidityWindow(uint256 _signatureBlockValidityWindow) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    if(_signatureBlockValidityWindow > 256) {
+      revert BlockValidityWindowTooBig();
+    }
+
     signatureBlockValidityWindow = _signatureBlockValidityWindow;
   }
 

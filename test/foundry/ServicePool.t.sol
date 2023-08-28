@@ -559,7 +559,7 @@ contract ServicePoolTest is Test {
     vm.stopPrank();
   }
 
-  function testPurchaseServiceWXMBellowMOQ() public {
+  function testPurchaseServiceWXMBelowMOQ() public {
     vm.startPrank(owner);
     servicePool.addService("serviceId1", "service1", 20, 100);
 
@@ -569,13 +569,13 @@ contract ServicePoolTest is Test {
     wxm.mint(1000);
     wxm.approve(address(servicePool), 800);
 
-    vm.expectRevert(IServicePool.BellowMOQ.selector);
+    vm.expectRevert(IServicePool.BelowMOQ.selector);
     servicePool.purchaseService(800, 10, "serviceId1");
 
     vm.stopPrank();
   }
 
-  function testPurchaseServiceStableCoinBellowMOQ() public {
+  function testPurchaseServiceStableCoinBelowMOQ() public {
     vm.startPrank(owner);
     servicePool.addService("serviceId1", "service1", 10, 100);
 
@@ -585,7 +585,7 @@ contract ServicePoolTest is Test {
     usdc.mint(1000);
     usdc.approve(address(servicePool), 800);
 
-    vm.expectRevert(IServicePool.BellowMOQ.selector);
+    vm.expectRevert(IServicePool.BelowMOQ.selector);
     servicePool.purchaseService(8, "serviceId1");
 
     vm.stopPrank();

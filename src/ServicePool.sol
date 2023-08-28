@@ -96,7 +96,7 @@ contract ServicePool is
     string memory serviceId
   ) external override whenNotPaused nonReentrant validService(serviceId) {
     if (duration < serviceCatalog[serviceId].moq) {
-      revert BellowMOQ();
+      revert BelowMOQ();
     }
     // prior to this op is required that the user approves the _amount to be transferred
     // by invoking the approve function of ERC20 contract
@@ -118,7 +118,7 @@ contract ServicePool is
     string memory serviceId
   ) external override whenNotPaused nonReentrant validService(serviceId) {
     if (duration < serviceCatalog[serviceId].moq) {
-      revert BellowMOQ();
+      revert BelowMOQ();
     }
     uint256 amount = duration * serviceCatalog[serviceId].vpu;
     // prior to this op is required that the user approves the _amount to be burned
@@ -185,7 +185,7 @@ contract ServicePool is
   }
 
   /**
-   * @notice Update the value per unit in each service.
+   * @notice Update the value per unit in a specific service.
    * @param _serviceId The service identifier.
    * @param _vpu The new value per unit for the service.
    */
@@ -204,7 +204,7 @@ contract ServicePool is
   }
 
   /**
-   * @notice Update the minimum order quantity in each service.
+   * @notice Update the minimum order quantity in a specific service.
    * @param _serviceId The service identifier.
    * @param _moq The new minimum order quantity for the service.
    */
@@ -233,6 +233,7 @@ contract ServicePool is
     serviceIndex[indexToDelete] = serviceIndex[serviceIndex.length - 1];
     serviceCatalog[serviceIndex[indexToDelete]].index = indexToDelete;
     serviceIndex.pop();
+    delete serviceCatalog[_serviceId];
     emit DeletedService(_serviceId, indexToDelete);
 
     // If array length is 0 it means it only had one elemnt

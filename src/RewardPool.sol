@@ -49,6 +49,8 @@ contract RewardPool is
   bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
+  uint public constant MAX_CLAIM_WAIT_PERIOD = 3600;
+
   struct RequestedClaim {
     uint amount;
     uint time;
@@ -131,8 +133,8 @@ contract RewardPool is
 
     uint256 balanceBefore = token.balanceOf(address(this));
     rewardsVault.pullDailyEmissions();
-    uint256 balacneAfter = token.balanceOf(address(this));
-    uint256 delta = balacneAfter - balanceBefore;
+    uint256 balanceAfter = token.balanceOf(address(this));
+    uint256 delta = balanceAfter - balanceBefore;
 
     // The rewards vault will always send as much as it has up to the daily emissions amount.
     // If are distributing less than the daily emission send the change to the treasury.
@@ -287,6 +289,10 @@ contract RewardPool is
    * @notice Update claim wait period.
    * */
   function updateClaimWaitPeriod(uint _claimWaitPeriod) external override onlyRole(DISTRIBUTOR_ROLE) {
+    if (_claimWaitPeriod > MAX_CLAIM_WAIT_PERIOD) {
+      revert AboveMaxCalimWaitPeriod();
+    }
+
     claimWaitPeriod = _claimWaitPeriod;
   }
 

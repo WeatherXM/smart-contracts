@@ -388,6 +388,36 @@ contract RewardPoolTest is Test {
     vm.stopPrank();
   }
 
+  function testUpdateClaimWaitPeriod() public {
+    vm.startPrank(owner);
+
+    wrappedProxyV1.updateClaimWaitPeriod(100);
+
+    assertEq(wrappedProxyV1.claimWaitPeriod(), 100);
+
+    vm.stopPrank();
+  }
+
+  function testUpdateClaimWaitPeriodWrongCaller() public {
+    vm.startPrank(alice);
+
+    vm.expectRevert(
+      "AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0xfbd454f36a7e1a388bd6fc3ab10d434aa4578f811acbbcf33afb1c697486313c"
+    );
+    wrappedProxyV1.updateClaimWaitPeriod(100);
+
+    vm.stopPrank();
+  }
+
+  function testUpdateClaimWaitPeriodAboveMax() public {
+    vm.startPrank(owner);
+
+    vm.expectRevert(IRewardPool.AboveMaxCalimWaitPeriod.selector);
+    wrappedProxyV1.updateClaimWaitPeriod(3601);
+
+    vm.stopPrank();
+  }
+
   function _getData() internal view returns (bytes32[] memory) {
     bytes32[] memory _data = new bytes32[](data.length);
     uint length = data.length;
