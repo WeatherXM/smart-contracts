@@ -51,13 +51,6 @@ contract RewardPool is
 
   uint public constant MAX_CLAIM_WAIT_PERIOD = 3600;
 
-  struct RequestedClaim {
-    uint amount;
-    uint time;
-  }
-  mapping(address => RequestedClaim) public latestRequestedClaims;
-  uint public claimWaitPeriod;
-
   /**
    * @notice Rate limit for submitting root hashes.
    * @dev Every 24h is the minimum limit for submitting root hashes for rewards
@@ -69,13 +62,6 @@ contract RewardPool is
       revert RewardsRateLimitingInEffect();
     }
     lastRewardRootTs = lastRewardRootTs.add(period);
-    _;
-  }
-
-  modifier requestClaimExists() {
-    if (latestRequestedClaims[_msgSender()].amount == 0) {
-      revert NoRequestClaim();
-    }
     _;
   }
 
@@ -112,7 +98,6 @@ contract RewardPool is
     lastRewardRootTs = block.timestamp;
     rewardsVault = IRewardsVault(_rewardsVault);
     rewardsChangeTreasury = _rewardsChangeTreasury;
-    claimWaitPeriod = 30 minutes;
   }
 
   /**
@@ -216,7 +201,6 @@ contract RewardPool is
     }
     claims[to] = claims[to].add(amount);
     claimedRewards = claimedRewards.add(amount);
-    latestRequestedClaims[to].amount = 0;
     token.safeTransfer(to, amount);
     return true;
   }
@@ -243,13 +227,13 @@ contract RewardPool is
    * @notice Request Claim Rewards
    * @dev Anyone can claim own rewards by submitting a request amount and a proof.
    * The amount should be lower or equal to the available allocated to withdraw.
-   * @param _amount The amount of tokens to claim.
+   * @param amount The amount of tokens to claim.
    * @param _totalRewards The cumulative amount of rewards up to the point of the requested cycle.
    * @param _cycle The desired cycle for which to choose the root hash.
    * @param proof The _proof that enables the claim of the requested amount of tokens.
    */
-  function requestClaim(
-    uint256 _amount,
+  function claim(
+    uint256 amount,
     uint256 _totalRewards,
     uint256 _cycle,
     bytes32[] calldata proof
@@ -257,43 +241,18 @@ contract RewardPool is
     if (_totalRewards == 0) {
       revert TotalRewardsAreZero();
     }
-    if (_amount == 0) {
+    if (amount == 0) {
       revert AmountRequestedIsZero();
     }
-    if (_amount > allocatedRewardsForProofMinusRewarded(_msgSender(), _totalRewards, _cycle, proof)) {
+    if (amount > allocatedRewardsForProofMinusRewarded(_msgSender(), _totalRewards, _cycle, proof)) {
       revert AmountIsOverAvailableRewardsToClaim();
     }
-    latestRequestedClaims[_msgSender()] = RequestedClaim({ amount: _amount, time: block.timestamp });
-    emit RequestClaim(_msgSender(), _amount);
-  }
 
-  /**
-   * @notice Claim rewards.
-   * @dev Anyone can claim own rewards by submitting the amount and a proof.
-   * The amount should be lower or equal to the available allocated to withdraw.
-   * */
-  function claim() external override requestClaimExists whenNotPaused nonReentrant {
-    if (block.timestamp > latestRequestedClaims[_msgSender()].time + claimWaitPeriod) {
-      uint amountToClaim = latestRequestedClaims[_msgSender()].amount;
-      latestRequestedClaims[_msgSender()].amount = 0;
-      claims[_msgSender()] = claims[_msgSender()].add(amountToClaim);
-      claimedRewards = claimedRewards.add(amountToClaim);
-      token.safeTransfer(_msgSender(), amountToClaim);
-      emit Claimed(_msgSender(), amountToClaim);
-    } else {
-      revert WaitingPeriodInEffect();
-    }
-  }
+    claims[_msgSender()] = claims[_msgSender()].add(amount);
+    claimedRewards = claimedRewards.add(amount);
+    token.safeTransfer(_msgSender(), amount);
 
-  /**
-   * @notice Update claim wait period.
-   * */
-  function updateClaimWaitPeriod(uint _claimWaitPeriod) external override onlyRole(DISTRIBUTOR_ROLE) {
-    if (_claimWaitPeriod > MAX_CLAIM_WAIT_PERIOD) {
-      revert AboveMaxCalimWaitPeriod();
-    }
-
-    claimWaitPeriod = _claimWaitPeriod;
+    emit Claimed(_msgSender(), amount);
   }
 
   function pause() public onlyRole(DEFAULT_ADMIN_ROLE) {

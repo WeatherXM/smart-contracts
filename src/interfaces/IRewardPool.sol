@@ -13,9 +13,6 @@ interface IRewardPool {
   error TransferFailed();
   error TargetAddressIsZero();
   error TargetAddressIsContractAddress();
-  error NoRequestClaim();
-  error WaitingPeriodInEffect();
-  error AboveMaxCalimWaitPeriod();
 
   /**
    * @dev Emitted when root hash is submitted
@@ -56,12 +53,7 @@ interface IRewardPool {
     bytes32[] calldata proof
   ) external returns (bool);
 
-  function requestClaim(uint256 _amount, uint256 _totalRewards, uint256 _cycle, bytes32[] calldata proof) external;
-
-  // user functions
-  function claim() external;
-
-  function updateClaimWaitPeriod(uint _claimWaitPeriod) external;
+  function claim(uint256 _amount, uint256 _totalRewards, uint256 _cycle, bytes32[] calldata proof) external;
 
   function getRemainingAllocatedRewards(
     address account,
