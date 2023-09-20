@@ -25,11 +25,7 @@ When adding a new Merkle root the caller must specify the amount of rewards that
 
 ## Rewards Claiming
 
-Rewards are claimed in two steps. This is done to allow time to react (pause) in case a bug/misconfiguration is noticed during claiming.
-The first step includes proof validation for the amount the user is eligible to claim, sanity checks, and preparing the state for the reward transfer `latestRequestedClaims[_msgSender()] = RequestedClaim({ amount: _amount, time: block.timestamp });`.
-The second step is the actual reward transfer which is going to check latestRequestedClaims mapping for the caller, updated the claimed amount for the user, update the total claimed rewards and finally transfer the tokens to the user. This can only be called claimWaitPeriod seconds after the first step otherwise it revers with WaitingPeriodInEffect.
-
-The wait period between step 1 and 2 is what will allow us to verify the claim before it happens and time to react in case we notice anything has gone wrong. Only the admin address (DAO) is able to stop this by calling pause.
+Claiming the rewards requires proof validation for the amount the user is eligible to claim along with some sanity checks. After the proof is verified and the sanity checks pass the claimed amount for the user is updated, the total claimed rewards are updated and the rewards are transferred to the user.
 
 ## Updating the reward claim period
 
