@@ -15,7 +15,8 @@ contract WeatherXMLicense is ERC721, ERC721Enumerable, AccessControl {
   bytes32 public constant LICENSE_MANAGER_ROLE = keccak256("LICENSE_MANAGER_ROLE");
 
   constructor(string memory name, string memory symbol) ERC721(name, symbol) {
-    super._setupRole(LICENSE_MANAGER_ROLE, _msgSender());
+    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _setupRole(LICENSE_MANAGER_ROLE, _msgSender());
   }
 
   function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {

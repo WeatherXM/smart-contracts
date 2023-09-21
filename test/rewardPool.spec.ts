@@ -428,13 +428,14 @@ describe('RewardPool', () => {
           'wei'
         )
       );
-      await rewardPool
-        .connect(addr2)
-        .requestClaim(rewardAmount, rewardAmount, 0, proof);
-      time.increase(1801);
-      expect(await rewardPool.connect(addr2).claim())
+      expect(
+        await rewardPool
+          .connect(addr2)
+          .claim(rewardAmount, rewardAmount, 0, proof)
+      )
         .to.emit(rewardPool, 'Claimed')
         .withArgs(rewardee, rewardAmount);
+
       const rewardeeBalance = await token.balanceOf(rewardee);
       const claims = await rewardPool.claims(rewardee);
       const proofBalanceAfterClaim = await rewardPool
@@ -464,13 +465,14 @@ describe('RewardPool', () => {
       const remainingRewardPoolBalance = ethers.utils.parseEther(
         String(14_246 - 8)
       );
-      await rewardPool
-        .connect(addr2)
-        .requestClaim(withdrawalAmount, rewardAmount, 0, proof);
-      time.increase(1801);
-      await expect(rewardPool.connect(addr2).claim())
+      await expect(
+        await rewardPool
+          .connect(addr2)
+          .claim(withdrawalAmount, rewardAmount, 0, proof)
+      )
         .to.emit(rewardPool, 'Claimed')
         .withArgs(rewardee, withdrawalAmount);
+
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
       const claims = await rewardPool.claims(rewardee);
@@ -495,24 +497,10 @@ describe('RewardPool', () => {
       const withdrawalAmount = rewards[0][1];
       await rewardPool
         .connect(addr2)
-        .requestClaim(
-          ethers.utils.parseEther(String(4)),
-          rewardAmount,
-          0,
-          proof
-        );
-      time.increase(1801);
-      await rewardPool.connect(addr2).claim();
+        .claim(ethers.utils.parseEther(String(4)), rewardAmount, 0, proof);
       await rewardPool
         .connect(addr2)
-        .requestClaim(
-          ethers.utils.parseEther(String(6)),
-          rewardAmount,
-          0,
-          proof
-        );
-      time.increase(1801);
-      await rewardPool.connect(addr2).claim();
+        .claim(ethers.utils.parseEther(String(6)), rewardAmount, 0, proof);
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
       const claims = await rewardPool.claims(rewardee);
@@ -544,7 +532,7 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(addr2)
-          .requestClaim(withdrawalAmount, rewardAmount, 0, proof)
+          .claim(withdrawalAmount, rewardAmount, 0, proof)
       ).to.be.revertedWithCustomError(
         rewardPool,
         'AmountIsOverAvailableRewardsToClaim'
@@ -578,7 +566,7 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(addr2)
-          .requestClaim(withdrawalAmount, rewardAmount, 0, garbageProof)
+          .claim(withdrawalAmount, rewardAmount, 0, garbageProof)
       ).to.be.revertedWith('INVALID PROOF');
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
@@ -611,14 +599,12 @@ describe('RewardPool', () => {
       const withdrawalAmount = ethers.utils.parseEther(String(4));
       await rewardPool
         .connect(addr2)
-        .requestClaim(withdrawalAmount, rewardAmount, 0, proof);
-      time.increase(1801);
-      await rewardPool.connect(addr2).claim();
+        .claim(withdrawalAmount, rewardAmount, 0, proof);
 
       await expect(
         rewardPool
           .connect(addr2)
-          .requestClaim(
+          .claim(
             ethers.utils.parseEther(String(7)),
             rewardAmount,
             0,
@@ -657,7 +643,7 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(addr2)
-          .requestClaim(
+          .claim(
             ethers.utils.parseEther(String(0)),
             rewardAmount,
             0,
@@ -676,7 +662,7 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(owner)
-          .requestClaim(
+          .claim(
             ethers.utils.parseEther(String(10)),
             rewardAmount,
             0,
@@ -695,16 +681,16 @@ describe('RewardPool', () => {
         insufficientFundsRewardAmount,
         insufficientFundsRewardee
       } = await loadFixture(deployClaimFixture);
-      await rewardPool
-        .connect(addr9)
-        .requestClaim(
-          insufficientFundsRewardAmount,
-          insufficientFundsRewardAmount,
-          0,
-          proof7
-        );
-      time.increase(1801);
-      await expect(rewardPool.connect(addr9).claim()).to.be.reverted;
+      await expect(
+        rewardPool
+          .connect(addr9)
+          .claim(
+            insufficientFundsRewardAmount,
+            insufficientFundsRewardAmount,
+            0,
+            proof7
+          )
+      ).to.be.revertedWith('ERC20: transfer amount exceeds balance');
       const rewardeeBalance = await token.balanceOf(insufficientFundsRewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
       const claims = await rewardPool.claims(insufficientFundsRewardee);
@@ -748,14 +734,7 @@ describe('RewardPool', () => {
       const withdrawalAmount = ethers.utils.parseEther(String(20));
       await rewardPool
         .connect(addr2)
-        .requestClaim(
-          ethers.utils.parseEther(String(8)),
-          rewardAmount,
-          0,
-          proof
-        );
-      time.increase(1801);
-      await rewardPool.connect(addr2).claim();
+        .claim(ethers.utils.parseEther(String(8)), rewardAmount, 0, proof);
       const proofBalanceAfterClaim =
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
@@ -778,16 +757,15 @@ describe('RewardPool', () => {
       );
       await rewardPool
         .connect(addr2)
-        .requestClaim(
+        .claim(
           ethers.utils.parseEther(String(12)),
           updatedRewardAmount,
           1,
           updatedProof
         );
-      time.increase(1801);
-      await rewardPool.connect(addr2).claim();
 
-      const updatedProofBalanceAfterBothClaims = await rewardPool.getRemainingAllocatedRewards(
+      const updatedProofBalanceAfterBothClaims =
+        await rewardPool.getRemainingAllocatedRewards(
           rewardee,
           updatedRewardAmount,
           1,
@@ -832,14 +810,12 @@ describe('RewardPool', () => {
         .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)));
       await rewardPool
         .connect(addr2)
-        .requestClaim(
+        .claim(
           ethers.utils.parseEther(String(8)),
           updatedRewardAmount,
           1,
           updatedProof
         );
-      time.increase(1801);
-      await rewardPool.connect(addr2).claim();
       const proofBalanceAfterClaim =
         await rewardPool.getRemainingAllocatedRewards(
           rewardee,
@@ -863,16 +839,11 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(addr2)
-          .requestClaim(
-            ethers.utils.parseEther(String(12)),
-            rewardAmount,
-            0,
-            proof
-          )
+          .claim(ethers.utils.parseEther(String(12)), rewardAmount, 0, proof)
       ).to.be.revertedWithCustomError(
         rewardPool,
         'AmountIsOverAvailableRewardsToClaim'
-      )
+      );
       const rewardeeBalance = await token.balanceOf(rewardee);
       const poolBalance = await token.balanceOf(rewardPool.address);
       const claims = await rewardPool.claims(rewardee);
@@ -907,11 +878,11 @@ describe('RewardPool', () => {
       expect(balanceOfRewardPool).to.be.equal(
         ethers.utils.parseEther(String(14_246))
       );
-      await rewardPool
-        .connect(addr6)
-        .requestClaim(rewardAmount, rewardAmount, 0, decimalRewardsProof);
-      time.increase(1801);
-      await expect(rewardPool.connect(addr6).claim())
+      await expect(
+        await rewardPool
+          .connect(addr6)
+          .claim(rewardAmount, rewardAmount, 0, decimalRewardsProof)
+      )
         .to.emit(rewardPool, 'Claimed')
         .withArgs(rewardee, rewardAmount);
       const rewardeeBalance = await token.balanceOf(rewardee);
@@ -957,10 +928,8 @@ describe('RewardPool', () => {
         )
       );
       await expect(
-        rewardPool
-          .connect(addr2)
-          .requestClaim(rewardAmount, 0, 0, proof)
-      ).to.be.revertedWithCustomError(rewardPool, 'TotalRewardsAreZero')
+        rewardPool.connect(addr2).claim(rewardAmount, 0, 0, proof)
+      ).to.be.revertedWithCustomError(rewardPool, 'TotalRewardsAreZero');
     });
 
     it('should revert if the reward pool is paused', async () => {
@@ -990,19 +959,14 @@ describe('RewardPool', () => {
       await rewardPool.connect(owner).pause();
 
       await expect(
-        rewardPool
-          .connect(addr2)
-          .requestClaim(rewardAmount, rewardAmount, 0, proof)
+        rewardPool.connect(addr2).claim(rewardAmount, rewardAmount, 0, proof)
       ).to.be.revertedWith('Pausable: paused');
 
       await rewardPool.connect(owner).unpause();
 
-
       await rewardPool
         .connect(addr2)
-        .requestClaim(rewardAmount, rewardAmount, 0, proof);
-      time.increase(1801);
-      await rewardPool.connect(addr2).claim();
+        .claim(rewardAmount, rewardAmount, 0, proof);
 
       const rewardeeBalance = await token.balanceOf(rewardee);
       const claims = await rewardPool.claims(rewardee);
@@ -1183,20 +1147,12 @@ describe('RewardPool', () => {
     });
 
     it('should revert if the rewardPool is paused', async () => {
-      const { rewardPool, distributor, owner, token, addr2 } = await loadFixture(
-        deployInitialStateFixture
-      );
+      const { rewardPool, distributor, owner, token, addr2 } =
+        await loadFixture(deployInitialStateFixture);
       const { rewardee, proof, rewardAmount } = await loadFixture(
         deployTransferRewardsState
       );
 
-      await rewardPool
-        .connect(addr2)
-        .requestClaim(rewardAmount, rewardAmount, 0, proof);
-
-      const latestRequestedClaims = await rewardPool.latestRequestedClaims(addr2.address);
-
-      expect(latestRequestedClaims.amount).to.be.equal(rewardAmount);
       await rewardPool.connect(owner).pause();
 
       await expect(
@@ -1212,17 +1168,14 @@ describe('RewardPool', () => {
         .transferRewards(rewardee, rewardAmount, rewardAmount, 0, proof);
       const rewardeeBalance = await token.balanceOf(rewardee);
       expect(rewardeeBalance).to.be.equal(rewardAmount);
-
-      const latestRequestedClaimsAfterTransferRewards = await rewardPool.latestRequestedClaims(addr2.address);
-      expect(latestRequestedClaimsAfterTransferRewards.amount).to.be.equal('0');
-      await expect(rewardPool.connect(addr2).claim())
-        .to.be.revertedWithCustomError(rewardPool, 'NoRequestClaim');
     });
   });
 
   describe('testing pausability', () => {
     it('should pause rewardpool', async () => {
-      const { rewardPool, owner } = await loadFixture(deployInitialStateFixture);
+      const { rewardPool, owner } = await loadFixture(
+        deployInitialStateFixture
+      );
 
       await rewardPool.connect(owner).pause();
 

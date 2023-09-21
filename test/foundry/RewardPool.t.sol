@@ -183,7 +183,7 @@ contract RewardPoolTest is Test {
     vm.stopPrank();
     vm.startPrank(_address);
     vm.expectRevert(bytes("INVALID PROOF"));
-    wrappedProxyV1.requestClaim(remainingBalance, 10000000000000000000, 1, _proof);
+    wrappedProxyV1.claim(remainingBalance, 10000000000000000000, 1, _proof);
     vm.stopPrank();
   }
 
@@ -210,15 +210,12 @@ contract RewardPoolTest is Test {
     vm.startPrank(address(bytesToAddress(rewards[leaves[0]].toList()[0].toBytes())));
     if (amount > remainingBalance) {
       vm.expectRevert(IRewardPool.AmountIsOverAvailableRewardsToClaim.selector);
-      wrappedProxyV1.requestClaim(amount, 10000000000000000000, 0, _proof);
+      wrappedProxyV1.claim(amount, 10000000000000000000, 0, _proof);
     } else if (amount == 0) {
       vm.expectRevert(IRewardPool.AmountRequestedIsZero.selector);
-      wrappedProxyV1.requestClaim(amount, 10000000000000000000, 0, _proof);
+      wrappedProxyV1.claim(amount, 10000000000000000000, 0, _proof);
     } else {
-      uint256 ts = block.timestamp;
-      wrappedProxyV1.requestClaim(amount, 10000000000000000000, 0, _proof);
-      vm.warp(ts + 1801);
-      wrappedProxyV1.claim();
+      wrappedProxyV1.claim(amount, 10000000000000000000, 0, _proof);
     }
     vm.stopPrank();
   }
@@ -385,36 +382,6 @@ contract RewardPoolTest is Test {
     wrappedProxyV1.submitMerkleRoot(root, totalRewards);
     assertEq(weatherXM.balanceOf(address(treasury)), maxDailyEmission - totalRewards);
     assertEq(weatherXM.balanceOf(address(wrappedProxyV1)), totalRewards);
-    vm.stopPrank();
-  }
-
-  function testUpdateClaimWaitPeriod() public {
-    vm.startPrank(owner);
-
-    wrappedProxyV1.updateClaimWaitPeriod(100);
-
-    assertEq(wrappedProxyV1.claimWaitPeriod(), 100);
-
-    vm.stopPrank();
-  }
-
-  function testUpdateClaimWaitPeriodWrongCaller() public {
-    vm.startPrank(alice);
-
-    vm.expectRevert(
-      "AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0xfbd454f36a7e1a388bd6fc3ab10d434aa4578f811acbbcf33afb1c697486313c"
-    );
-    wrappedProxyV1.updateClaimWaitPeriod(100);
-
-    vm.stopPrank();
-  }
-
-  function testUpdateClaimWaitPeriodAboveMax() public {
-    vm.startPrank(owner);
-
-    vm.expectRevert(IRewardPool.AboveMaxCalimWaitPeriod.selector);
-    wrappedProxyV1.updateClaimWaitPeriod(3601);
-
     vm.stopPrank();
   }
 
