@@ -727,7 +727,7 @@ describe('RewardPool', () => {
           updatedProof = updatedMerkleTree.getProof(i);
         }
       }
-      time.increase(90000);
+      await time.increase(90000);
       await rewardPool
         .connect(distributor)
         .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)));

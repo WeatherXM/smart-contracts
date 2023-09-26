@@ -18,7 +18,8 @@ contract RewardsVault is Ownable {
   /* ========== STATE VARIABLES ========== */
   IERC20 public token;
   address public rewardDistributor;
-  uint256 public lastRewardTs = 0;
+  uint256 public lastRewardDistributionDayIndex = 0;
+  uint256 public firstRewardTs = 0;
 
   /* ========== CONSTANTS ========== */
   uint256 public constant maxDailyEmission = 14246 * 10 ** 18;
@@ -29,10 +30,16 @@ contract RewardsVault is Ownable {
    * @dev Every 24h is the minimum limit for pulling rewards.
    * */
   modifier emissionsRateLimit() {
-    if (block.timestamp < lastRewardTs) {
-      revert EmissionsRateLimitingInEffect();
+    // This is the first time we pull rewards
+    if (firstRewardTs == 0) {
+      firstRewardTs = block.timestamp;
+    } else {
+      uint256 currIndex = _getCurrIndex();
+
+      if (lastRewardDistributionDayIndex >= currIndex) {
+        revert EmissionsRateLimitingInEffect();
+      }
     }
-    lastRewardTs = lastRewardTs.add(rewardDistributionPeriod);
     _;
   }
 
@@ -51,16 +58,32 @@ contract RewardsVault is Ownable {
     rewardDistributor = _rewardDistributor;
   }
 
+  function _getCurrIndex() private view returns (uint256) {
+    uint256 currIndex = ((block.timestamp - firstRewardTs) / rewardDistributionPeriod) + 1;
+
+    return currIndex;
+  }
+
+  function availableToPull() public view returns (uint256) {
+    uint256 currIndex = _getCurrIndex();
+    uint256 daysToDistribute = currIndex - lastRewardDistributionDayIndex;
+    uint256 rewardsToDistribute = daysToDistribute * maxDailyEmission;
+
+    return rewardsToDistribute;
+  }
+
   /**
    * @notice Sends the dialy emissions to the rewards distributor.
    * @dev Reverts if called again within less that 24 hours.
    * */
   function pullDailyEmissions() public onlyRewardDistributor emissionsRateLimit {
-    if (token.balanceOf(address(this)) >= maxDailyEmission) {
-      token.safeTransfer(rewardDistributor, maxDailyEmission);
+    if (token.balanceOf(address(this)) >= availableToPull()) {
+      token.safeTransfer(rewardDistributor, availableToPull());
     } else {
       token.safeTransfer(rewardDistributor, token.balanceOf(address(this)));
     }
+
+    lastRewardDistributionDayIndex = _getCurrIndex();
   }
 
   /**
