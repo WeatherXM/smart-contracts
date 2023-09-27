@@ -16,6 +16,7 @@ contract RewardsVaultTest is Test {
   address internal bob;
   address internal rewardsDistributor;
   uint256 public constant maxDailyEmission = 14246 * 10 ** 18;
+  uint256 public constant rewardDistributionPeriod = 1440 minutes;
 
   function setUp() external {
     alice = address(0x1);
@@ -113,6 +114,55 @@ contract RewardsVaultTest is Test {
 
     vm.expectRevert("Ownable: caller is not the owner");
     rewardsVault.setRewardDistributor(alice);
+
+    vm.stopPrank();
+  }
+
+  function testRewardReleaseOverTime() public {
+    vm.startPrank(owner);
+    wxm.transfer(address(rewardsVault), 55000000 * 10 ** 18);
+    vm.stopPrank();
+
+    vm.startPrank(rewardsDistributor);
+
+    uint256 currTs = block.timestamp;
+
+    assertEq(wxm.balanceOf(rewardsDistributor), 0);
+    // Pull rewards for the first time
+    rewardsVault.pullDailyEmissions();
+    assertEq(wxm.balanceOf(rewardsDistributor), maxDailyEmission);
+
+    // Move time 6 hours ahead 
+    vm.warp(currTs + 6 hours);
+    vm.expectRevert(RewardsVault.EmissionsRateLimitingInEffect.selector);
+    rewardsVault.pullDailyEmissions();
+
+    // Move time 12 hours ahead 
+    vm.warp(currTs + 12 hours);
+    vm.expectRevert(RewardsVault.EmissionsRateLimitingInEffect.selector);
+    rewardsVault.pullDailyEmissions();
+
+    // Move time 18 hours ahead 
+    vm.warp(currTs + 18 hours);
+    vm.expectRevert(RewardsVault.EmissionsRateLimitingInEffect.selector);
+    rewardsVault.pullDailyEmissions();
+
+    // Move time to 1 second before we can pull again
+    vm.warp(currTs + rewardDistributionPeriod - 1);
+    vm.expectRevert(RewardsVault.EmissionsRateLimitingInEffect.selector);
+    rewardsVault.pullDailyEmissions();
+
+    // Move time to exactly when we can pull again
+    vm.warp(currTs + rewardDistributionPeriod);
+    rewardsVault.pullDailyEmissions();
+    assertEq(wxm.balanceOf(rewardsDistributor), maxDailyEmission * 2);
+
+    currTs = block.timestamp;
+
+    // Move 2 days ahead and we can pull yesterdays reward's as well
+    vm.warp(currTs + rewardDistributionPeriod * 2);
+    rewardsVault.pullDailyEmissions();
+    assertEq(wxm.balanceOf(rewardsDistributor), maxDailyEmission * 4);
 
     vm.stopPrank();
   }
