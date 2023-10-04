@@ -33,12 +33,15 @@ describe('WeatherXMStation', () => {
     );
     await stationRegistry.deployed();
 
+    const ArbSys = await ethers.getContractFactory('src/mocks/ArbSys.sol:ArbSys')
+    const arbSys = await ArbSys.deploy()
     const WeatherXMStation = await ethers.getContractFactory(
       'WeatherXMStation'
     );
     const weatherXMStation = await WeatherXMStation.deploy(
       'WeatherXMStation',
-      'WXM_STATION'
+      'WXM_STATION',
+      arbSys.address
     );
     await weatherXMStation.setStationRegistry(stationRegistry.address);
     await stationRegistry.addStation("model1", "meta-1");

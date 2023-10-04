@@ -24,3 +24,6 @@
 	path = lib/Solidity-RLP
 	url = https://github.com/hamdiallam/Solidity-RLP
 	branch = v2.0.8
+[submodule "lib/nitro-contracts"]
+	path = lib/nitro-contracts
+	url = https://github.com/OffchainLabs/nitro-contracts

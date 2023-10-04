@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import { ArbSys } from "lib/nitro-contracts/src/precompiles/ArbSys.sol";
 import { IWeatherXMStation } from "./interfaces/IWeatherXMStation.sol";
 import { IWeatherXMStationsRegistry } from "./interfaces/IWeatherXMStationsRegistry.sol";
 import { ECDSA } from "lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
@@ -36,10 +37,14 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
   mapping(address => uint256) public tokenByPubKey;
   mapping(string => uint256) public tokenBySerialNum;
 
+  ArbSys public arbSys;
+
   /* ========== CONSTRUCTOR ========== */
-  constructor(string memory name, string memory symbol) ERC721(name, symbol) {
+  constructor(string memory name, string memory symbol, address arbSysAddress) ERC721(name, symbol) {
     super._setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     super._setupRole(PROVISIONER_ROLE, _msgSender());
+
+    arbSys = ArbSys(arbSysAddress);
   }
 
   function getMaxBlockhashValidWindow() public view virtual returns (uint256) {
@@ -211,17 +216,17 @@ contract WeatherXMStation is AccessControl, ERC721, ERC721Enumerable, IWeatherXM
     bytes calldata signatureFromChip,
     uint256 blockNumberUsedInSig
   ) internal view returns (uint256) {
-    if (block.number <= blockNumberUsedInSig) {
+    if (arbSys.arbBlockNumber() <= blockNumberUsedInSig) {
       revert InvalidBlockNumber();
     }
 
     unchecked {
-      if (block.number - blockNumberUsedInSig > getMaxBlockhashValidWindow()) {
+      if (arbSys.arbBlockNumber() - blockNumberUsedInSig > getMaxBlockhashValidWindow()) {
         revert BlockNumberTooOld();
       }
     }
 
-    bytes32 blockHash = blockhash(blockNumberUsedInSig);
+    bytes32 blockHash = arbSys.arbBlockHash(blockNumberUsedInSig);
     bytes32 signedHash = keccak256(abi.encodePacked(_msgSender(), blockHash)).toEthSignedMessageHash();
     address chipAddr = signedHash.recover(signatureFromChip);
 

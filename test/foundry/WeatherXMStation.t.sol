@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 import { Test } from "forge-std/Test.sol";
+import { ArbSys } from "src/mocks/ArbSys.sol";
 import { WeatherXMStation } from "src/WeatherXMStation.sol";
 import { WeatherXMStationsRegistry } from "src/WeatherXMStationsRegistry.sol";
 import { IWeatherXMStation } from "src/interfaces/IWeatherXMStation.sol";
@@ -16,6 +17,7 @@ contract WeatherXMStationTest is Test {
   WeatherXMStation internal weatherXMStation;
   WeatherXMStationsRegistry internal stationRegistryImplementaion;
   WeatherXMStationsRegistry internal stationRegistry;
+  ArbSys internal arbSys;
   ERC1967Proxy public proxy;
   address internal admin = address(0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
   address internal alice;
@@ -100,7 +102,8 @@ contract WeatherXMStationTest is Test {
     proxy = new ERC1967Proxy(address(stationRegistryImplementaion), "");
     stationRegistry = WeatherXMStationsRegistry(address(proxy));
     stationRegistry.initialize();
-    weatherXMStation = new WeatherXMStation("WeatherXM Station", "WXM_STATION");
+    arbSys = new ArbSys();
+    weatherXMStation = new WeatherXMStation("WeatherXM Station", "WXM_STATION", address(arbSys));
     weatherXMStation.setStationRegistry(IWeatherXMStationsRegistry(stationRegistry));
     stationRegistry.addStation("model1", "meta1");
     stationRegistry.addStation("model2", "meta2");
@@ -122,7 +125,8 @@ contract WeatherXMStationTest is Test {
   function testContrsuctor() public {
     vm.startPrank(admin);
 
-    weatherXMStation = new WeatherXMStation("WeatherXM Station", "WXM_STATION");
+    arbSys = new ArbSys();
+    weatherXMStation = new WeatherXMStation("WeatherXM Station", "WXM_STATION", address(arbSys));
     
     assertEq(weatherXMStation.name(), "WeatherXM Station");
     assertEq(weatherXMStation.symbol(), "WXM_STATION");
