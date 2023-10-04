@@ -1,6 +1,6 @@
 # Weather Station NFT
 
-NFT that is used to represent the physical weather stations. Follows the [PBT](https://www.pbt.io/) standard with some added functionality.
+NFT that is used to represent the physical weather stations. Follows the [PBT](https://eips.ethereum.org/EIPS/eip-5791) standard with some added functionality.
 
 The contract is using OpenZeppelin’s AccessControl contract for fine-grained access control. The two roles that are defined are the following:
 
