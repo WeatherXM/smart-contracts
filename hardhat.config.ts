@@ -24,6 +24,7 @@ function getRemappings() {
 export const compilerConfig = (version: string) => ({
   version,
   settings: {
+    evmVersion: 'london',
     optimizer: {
       enabled: true,
       runs: 5000
@@ -48,6 +49,11 @@ const hardhatConfig: HardhatUserConfig = {
       chainId: 5,
       url: "",
       accounts: []
+    },
+    arbitrumGoerli: {
+      chainId: 421613,
+      url: "https://goerli-rollup.arbitrum.io/rpc",
+      accounts: ['0xafd72e8b21617468e50f211f985267ca8eeed3732875e2853e6219d53938b074']
     }
     // mumbai: {
     //   url: process.env.NODE_URL || `https://polygon-mumbai.g.alchemy.com/v2/${envConfig.ALCHEMY_API_KEY}`,

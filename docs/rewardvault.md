@@ -19,3 +19,5 @@ Holds all the rewards that will be distributed by the RewardPool contract.
  - The owner can only control who is authorized to pull rewards
  - The release schedule cannot be changed
  - Tokens can be sent to this contract at any time and will be released based on a schedule which follows the [Token Emissions](./emissions.md)
+ - Tokens are released on daily intervals from the firs release
+ - If tokens are not pulled for `n` days then the next time tokens are pulled the contract will release tokens for `n+1` days
