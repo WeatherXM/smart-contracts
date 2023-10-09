@@ -7,10 +7,6 @@ interface IWeatherXM is IERC20Metadata {
 
   function burn(uint256 amount) external;
 
-  function pause() external;
-
-  function unpause() external;
-
   function owner() external view returns (address);
 
   function totalSupply() external view returns (uint256);

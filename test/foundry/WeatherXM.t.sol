@@ -134,45 +134,4 @@ contract WeatherXMTest is Test {
       expRevertMessage: "ERC20: transfer to the zero address"
     });
   }
-
-  function testPausedTransfer() public {
-    vm.startPrank(admin);
-    vm.deal(admin, 1 ether);
-    weatherXM.transfer(alice, 35);
-    weatherXM.pause();
-    vm.stopPrank();
-    vm.expectRevert("Pausable: paused");
-    transferToken(alice, bob, 35);
-  }
-
-  function testPausedBurn() public {
-    vm.startPrank(admin);
-    vm.deal(admin, 1 ether);
-    weatherXM.transfer(alice, 35);
-    weatherXM.pause();
-    vm.stopPrank();
-    vm.expectRevert("Pausable: paused");
-    vm.startPrank(alice);
-    weatherXM.burn(35);
-    vm.stopPrank();
-  }
-
-   function testUnpause() public {
-    vm.startPrank(admin);
-    vm.deal(admin, 1 ether);
-    weatherXM.transfer(alice, 35);
-    weatherXM.pause();
-    vm.stopPrank();
-    vm.expectRevert("Pausable: paused");
-    transferToken(alice, bob, 35);
-    vm.startPrank(admin);
-    weatherXM.unpause();
-    vm.stopPrank();
-
-    vm.startPrank(alice);
-    weatherXM.transfer(bob, 35);
-    vm.stopPrank();
-    assertEq(weatherXM.balanceOf(alice), 0);
-    assertEq(weatherXM.balanceOf(bob), 35);
-  }
 }
