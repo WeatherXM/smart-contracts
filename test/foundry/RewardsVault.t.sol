@@ -159,8 +159,11 @@ contract RewardsVaultTest is Test {
 
     currTs = block.timestamp;
 
-    // Move 2 days ahead and we can pull yesterdays reward's as well
+    // Move 2 days ahead and we can pull twice
     vm.warp(currTs + rewardDistributionPeriod * 2);
+    rewardsVault.pullDailyEmissions();
+    assertEq(wxm.balanceOf(rewardsDistributor), maxDailyEmission * 3);
+
     rewardsVault.pullDailyEmissions();
     assertEq(wxm.balanceOf(rewardsDistributor), maxDailyEmission * 4);
 

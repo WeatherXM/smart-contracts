@@ -116,7 +116,7 @@ contract RewardPoolTest is Test {
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission);
+    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission, 0);
     for (uint i = 0; i < leaves.length; ++i) {
       RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
       RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
@@ -141,7 +141,7 @@ contract RewardPoolTest is Test {
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission);
+    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission, 0);
     for (uint i = 0; i < leaves.length; ++i) {
       RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
       RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
@@ -166,7 +166,7 @@ contract RewardPoolTest is Test {
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission);
+    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission, 0);
     RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
     RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
     bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
@@ -192,7 +192,7 @@ contract RewardPoolTest is Test {
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission);
+    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission, 0);
     RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
     RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
     bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
@@ -225,7 +225,7 @@ contract RewardPoolTest is Test {
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission);
+    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission, 0);
     RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
     RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
     bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
@@ -251,7 +251,7 @@ contract RewardPoolTest is Test {
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission);
+    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission, 0);
     RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
     RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
     bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
@@ -296,7 +296,7 @@ contract RewardPoolTest is Test {
     wrappedProxyV1.grantRole(DISTRIBUTOR_ROLE, bob);
     vm.stopPrank();
     vm.startPrank(bob);
-    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission);
+    wrappedProxyV1.submitMerkleRoot(root, maxDailyEmission, 0);
     RLPReader.RLPItem[] memory rewards = resultData.toRlpItem().toList();
     RLPReader.RLPItem[] memory proofsEncoded = resultProofs.toRlpItem().toList();
     bytes32[] memory _proof = new bytes32[](proofsEncoded[0].toList().length);
@@ -379,7 +379,7 @@ contract RewardPoolTest is Test {
     vm.startPrank(bob);
     assertEq(weatherXM.balanceOf(address(treasury)), 0);
     uint256 totalRewards = 10246 * 10 ** 18;
-    wrappedProxyV1.submitMerkleRoot(root, totalRewards);
+    wrappedProxyV1.submitMerkleRoot(root, totalRewards, 0);
     assertEq(weatherXM.balanceOf(address(treasury)), maxDailyEmission - totalRewards);
     assertEq(weatherXM.balanceOf(address(wrappedProxyV1)), totalRewards);
     vm.stopPrank();

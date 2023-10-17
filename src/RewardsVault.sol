@@ -34,7 +34,7 @@ contract RewardsVault is Ownable {
     if (firstRewardTs == 0) {
       firstRewardTs = block.timestamp;
     } else {
-      uint256 currIndex = _getCurrIndex();
+      uint256 currIndex = getCurrIndex();
 
       if (lastRewardDistributionDayIndex >= currIndex) {
         revert EmissionsRateLimitingInEffect();
@@ -58,18 +58,10 @@ contract RewardsVault is Ownable {
     rewardDistributor = _rewardDistributor;
   }
 
-  function _getCurrIndex() private view returns (uint256) {
+  function getCurrIndex() public view returns (uint256) {
     uint256 currIndex = ((block.timestamp - firstRewardTs) / rewardDistributionPeriod) + 1;
 
     return currIndex;
-  }
-
-  function availableToPull() public view returns (uint256) {
-    uint256 currIndex = _getCurrIndex();
-    uint256 daysToDistribute = currIndex - lastRewardDistributionDayIndex;
-    uint256 rewardsToDistribute = daysToDistribute * maxDailyEmission;
-
-    return rewardsToDistribute;
   }
 
   /**
@@ -77,13 +69,13 @@ contract RewardsVault is Ownable {
    * @dev Reverts if called again within less that 24 hours.
    * */
   function pullDailyEmissions() public onlyRewardDistributor emissionsRateLimit {
-    if (token.balanceOf(address(this)) >= availableToPull()) {
-      token.safeTransfer(rewardDistributor, availableToPull());
+    if (token.balanceOf(address(this)) >= maxDailyEmission) {
+      token.safeTransfer(rewardDistributor, maxDailyEmission);
     } else {
       token.safeTransfer(rewardDistributor, token.balanceOf(address(this)));
     }
 
-    lastRewardDistributionDayIndex = _getCurrIndex();
+    lastRewardDistributionDayIndex = lastRewardDistributionDayIndex + 1;
   }
 
   /**
