@@ -106,6 +106,9 @@ contract RewardPool is
     rewardsChangeTreasury = _rewardsChangeTreasury;
   }
 
+  /**
+   * Calculate and return the current cycle based on the current timestamp and the first time we submitted a Merkle root
+   */
   function getCurrCycle() public view returns (uint256) {
     uint256 currCycle = ((block.timestamp - firstRewardCycleTs) / merkleRootSubmissionPeriod) + 1;
 
@@ -120,7 +123,7 @@ contract RewardPool is
    * The root hashes are stored in a mapping where the cycle is the accessor.
    * For every cycle there is only one root hash.
    * @param root The root hash containing the cumulative rewards plus the daily rewards.
-   * @param totalRewards The total rewads being allocation with this merkle root.
+   * @param totalRewards The total rewads being allocation with this merkle root. This must also include the boostRewards
    * @param boostRewards The amount of rewards that are being allocated as part of a boost.
    * */
   function submitMerkleRoot(

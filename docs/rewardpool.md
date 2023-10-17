@@ -23,6 +23,8 @@ Whoever holds the `DISTRIBUTOR_ROLE` (which in our case will be controlled by th
 
 When adding a new Merkle root the caller must specify the amount of rewards that are being distributed in that cycle. The Reward Pool will try to pull the rewards from the Reward's vault, if that fails the transaction will revert. The Reward's vault will send as much as it can up to the daily emission amount (as described in the whitepaper). If the Reward's vault send more than what is being distributed the difference will be send to the rewards distribution change treasury.
 
+If we have not submitted a Merkle root for `n` then we can submit `n+1` Merkle roots
+
 ## Rewards Claiming
 
 Claiming the rewards requires proof validation for the amount the user is eligible to claim along with some sanity checks. After the proof is verified and the sanity checks pass the claimed amount for the user is updated, the total claimed rewards are updated and the rewards are transferred to the user.
