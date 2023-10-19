@@ -44,24 +44,30 @@ contract RewardPool is
   uint256 public claimedRewards;
   IRewardsVault public rewardsVault;
   address public rewardsChangeTreasury;
+  uint256 public firstRewardCycleTs;
 
   /* ========== ROLES ========== */
   bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-  uint public constant MAX_CLAIM_WAIT_PERIOD = 3600;
+  /* ========== CONSTANTS ========== */
+  uint256 public constant merkleRootSubmissionPeriod = 1440 minutes;
 
   /**
    * @notice Rate limit for submitting root hashes.
    * @dev Every 24h is the minimum limit for submitting root hashes for rewards
    * due to the fact that every 24h, the minting is going to take place for the first 10ys
-   * @param period The period for which to enforce the rate limit
    * */
-  modifier rateLimit(uint256 period) {
-    if (block.timestamp < lastRewardRootTs) {
-      revert RewardsRateLimitingInEffect();
+  modifier rateLimit() {
+    if (firstRewardCycleTs == 0) {
+      firstRewardCycleTs = block.timestamp;
+    } else {
+      uint256 currCycle = getCurrCycle();
+
+      if (cycle >= currCycle) {
+        revert RewardsRateLimitingInEffect();
+      }
     }
-    lastRewardRootTs = lastRewardRootTs.add(period);
     _;
   }
 
@@ -101,6 +107,15 @@ contract RewardPool is
   }
 
   /**
+   * Calculate and return the current cycle based on the current timestamp and the first time we submitted a Merkle root
+   */
+  function getCurrCycle() public view returns (uint256) {
+    uint256 currCycle = ((block.timestamp - firstRewardCycleTs) / merkleRootSubmissionPeriod) + 1;
+
+    return currCycle;
+  }
+
+  /**
    * @notice Submit root hash for rewards.
    * @dev The root hash is calculated of chain and submitted every day.
    * The root hash is stored also off chain in order to calculate each
@@ -108,11 +123,14 @@ contract RewardPool is
    * The root hashes are stored in a mapping where the cycle is the accessor.
    * For every cycle there is only one root hash.
    * @param root The root hash containing the cumulative rewards plus the daily rewards.
+   * @param totalRewards The total rewads being allocation with this merkle root. This must also include the boostRewards
+   * @param boostRewards The amount of rewards that are being allocated as part of a boost.
    * */
   function submitMerkleRoot(
     bytes32 root,
-    uint256 totalRewards
-  ) external override onlyRole(DISTRIBUTOR_ROLE) rateLimit(1440 minutes) whenNotPaused returns (bool) {
+    uint256 totalRewards,
+    uint256 boostRewards
+  ) external override onlyRole(DISTRIBUTOR_ROLE) rateLimit whenNotPaused returns (bool) {
     uint256 activeCycle = cycle;
     roots[activeCycle] = root;
 
@@ -123,8 +141,13 @@ contract RewardPool is
 
     // The rewards vault will always send as much as it has up to the daily emissions amount.
     // If are distributing less than the daily emission send the change to the treasury.
-    if (delta > totalRewards) {
+    // The boost is coming from a different pool so it doesnt count again the change
+    if (delta - boostRewards > totalRewards) {
       token.safeTransfer(rewardsChangeTreasury, delta - totalRewards);
+    }
+
+    if (boostRewards > 0) {
+      token.safeTransferFrom(rewardsChangeTreasury, address(this), boostRewards);
     }
 
     cycle++;

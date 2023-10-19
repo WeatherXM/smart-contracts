@@ -42,7 +42,7 @@ interface IRewardPool {
   event RequestClaim(address indexed from, uint256 amount);
 
   //root hash submission
-  function submitMerkleRoot(bytes32 root, uint256 totalRewards) external returns (bool);
+  function submitMerkleRoot(bytes32 root, uint256 totalRewards, uint256 boostRewards) external returns (bool);
 
   // transfer functions
   function transferRewards(

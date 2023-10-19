@@ -116,7 +116,7 @@ describe('RewardPool', () => {
       expect(cycleNumber.toNumber()).to.equal(0);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)));
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)), '0');
       const txnGetRoot = await rewardPool.connect(distributor).roots(0);
       expect(txnGetRoot).to.equal(root);
     });
@@ -129,7 +129,7 @@ describe('RewardPool', () => {
       const root = tree.root;
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)));
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)), '0');
       const updatedRewards = rewards.slice();
       updatedRewards[0][1] = ethers.utils.parseEther('20.0');
       const treeUpdated = StandardMerkleTree.of(updatedRewards, [
@@ -144,7 +144,8 @@ describe('RewardPool', () => {
           .connect(distributor)
           .submitMerkleRoot(
             updatedRoot,
-            ethers.utils.parseEther(String(14_246))
+            ethers.utils.parseEther(String(14_246)),
+            '0'
           )
       ).to.be.revertedWithCustomError(
         rewardPool,
@@ -162,11 +163,62 @@ describe('RewardPool', () => {
       await expect(
         rewardPool
           .connect(addr2)
-          .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)))
+          .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)), '0')
       ).to.be.revertedWith(
         `AccessControl: account ${addr2.address.toLocaleLowerCase()} is missing role ${distributorRole}`
       );
     });
+
+    it('should allow submitting n+1 trees if we did not submit for n days', async () => {
+      const { rewardPool, distributor, addr2 } = await loadFixture(
+        deployInitialStateFixture
+      );
+      mine(1);
+      const tree1 = StandardMerkleTree.of([[addr2.address, '1']], ['address', 'uint256']);
+      const root1 = tree1.root;
+      const cycleNumber1 = await rewardPool.cycle();
+      expect(cycleNumber1.toNumber()).to.equal(0);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root1, ethers.utils.parseEther(String(14_246)), '0');
+      const root1_actual = await rewardPool.connect(distributor).roots(0);
+      expect(root1_actual).to.equal(root1);
+
+      time.increase(86400);
+
+      const tree2 = StandardMerkleTree.of([[addr2.address, '2']], ['address', 'uint256']);
+      const root2 = tree2.root;
+      const cycleNumber2 = await rewardPool.cycle();
+      expect(cycleNumber2.toNumber()).to.equal(1);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root2, ethers.utils.parseEther(String(14_246)), '0');
+      const root2_actual = await rewardPool.connect(distributor).roots(1);
+      expect(root2_actual).to.equal(root2);
+
+      time.increase(86400 * 2);
+
+      const tree3 = StandardMerkleTree.of([[addr2.address, '3']], ['address', 'uint256']);
+      const root3 = tree3.root;
+      const cycleNumber3 = await rewardPool.cycle();
+      expect(cycleNumber3.toNumber()).to.equal(2);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root3, ethers.utils.parseEther(String(14_246)), '0');
+      const root3_actual = await rewardPool.connect(distributor).roots(2);
+      expect(root3_actual).to.equal(root3);
+
+      const tree4 = StandardMerkleTree.of([[addr2.address, '4']], ['address', 'uint256']);
+      const root4 = tree4.root;
+      const cycleNumber4 = await rewardPool.cycle();
+      expect(cycleNumber4.toNumber()).to.equal(3);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root4, ethers.utils.parseEther(String(14_246)), '0');
+      const root4_actual = await rewardPool.connect(distributor).roots(3);
+      expect(root4_actual).to.equal(root4);
+
+    })
   });
 
   describe('getRecipientRewardsBalance', () => {
@@ -194,7 +246,7 @@ describe('RewardPool', () => {
       const rewardCycle = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)));
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)), '0');
       const updatedRewards = rewards.slice();
       const updatedRewardAmount = ethers.utils.parseEther(String(20));
       updatedRewards[0][1] = updatedRewardAmount;
@@ -299,7 +351,7 @@ describe('RewardPool', () => {
       const rewardCycleUpdated = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)));
+        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)), '0');
 
       const remainedTokensUpdated =
         await rewardPool.getRemainingAllocatedRewards(
@@ -336,7 +388,7 @@ describe('RewardPool', () => {
       const rewardCycleUpdated = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)));
+        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)), '0');
       await expect(
         rewardPool
           .connect(distributor)
@@ -376,7 +428,7 @@ describe('RewardPool', () => {
       time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)));
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)), '0');
       const insufficientFundsRewardee = rewards[7][0];
       const insufficientFundsRewardAmount = rewards[7][1];
       for (const [i, v] of tree.entries()) {
@@ -730,7 +782,7 @@ describe('RewardPool', () => {
       await time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)));
+        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)), '0');
       const withdrawalAmount = ethers.utils.parseEther(String(20));
       await rewardPool
         .connect(addr2)
@@ -807,7 +859,7 @@ describe('RewardPool', () => {
       time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)));
+        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)), '0');
       await rewardPool
         .connect(addr2)
         .claim(
@@ -1003,7 +1055,7 @@ describe('RewardPool', () => {
       time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)));
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)), '0');
       return { rewardee, proof, rewardAmount };
     }
 
