@@ -168,7 +168,7 @@ contract RewardPool is
     uint256 _cycle,
     bytes32[] calldata proof
   ) external view override whenNotPaused returns (uint256) {
-    return allocatedRewardsForProofMinusRewarded(account, amount, _cycle, proof);
+    return _allocatedRewardsForProofMinusRewarded(account, amount, _cycle, proof);
   }
 
   /**
@@ -179,7 +179,7 @@ contract RewardPool is
    * @param _cycle cycle for which to choose the root hash
    * @param proof The recipient's proof
    * */
-  function allocatedRewardsForProofMinusRewarded(
+  function _allocatedRewardsForProofMinusRewarded(
     address account,
     uint256 amount,
     uint256 _cycle,
@@ -188,7 +188,7 @@ contract RewardPool is
     if (amount == 0) {
       revert AmountRequestedIsZero();
     }
-    uint256 total = verify(account, amount, _cycle, proof);
+    uint256 total = _verify(account, amount, _cycle, proof);
     if (claims[account] < total) {
       return total.sub(claims[account]);
     } else {
@@ -219,7 +219,7 @@ contract RewardPool is
     if (amount == 0) {
       revert AmountRequestedIsZero();
     }
-    if (amount > allocatedRewardsForProofMinusRewarded(to, totalRewards, _cycle, proof)) {
+    if (amount > _allocatedRewardsForProofMinusRewarded(to, totalRewards, _cycle, proof)) {
       revert AmountIsOverAvailableRewardsToClaim();
     }
     claims[to] = claims[to].add(amount);
@@ -235,7 +235,7 @@ contract RewardPool is
    * @param _cycle The desired cycle for which to choose the root hash
    * @param proof The _proof that enables the claim of the requested amount of tokens
    * */
-  function verify(
+  function _verify(
     address account,
     uint256 amount,
     uint256 _cycle,
@@ -267,7 +267,7 @@ contract RewardPool is
     if (amount == 0) {
       revert AmountRequestedIsZero();
     }
-    if (amount > allocatedRewardsForProofMinusRewarded(_msgSender(), _totalRewards, _cycle, proof)) {
+    if (amount > _allocatedRewardsForProofMinusRewarded(_msgSender(), _totalRewards, _cycle, proof)) {
       revert AmountIsOverAvailableRewardsToClaim();
     }
 
