@@ -4,9 +4,8 @@ pragma solidity 0.8.20;
 import { SafeMath } from "lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import { ERC20Capped } from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Capped.sol";
-import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract WeatherXM is ERC20, ERC20Capped, Ownable {
+contract WeatherXM is ERC20, ERC20Capped {
   /* ========== LIBRARIES ========== */
   using SafeMath for uint256;
 
