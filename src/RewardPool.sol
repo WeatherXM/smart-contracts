@@ -123,12 +123,12 @@ contract RewardPool is
    * The root hashes are stored in a mapping where the cycle is the accessor.
    * For every cycle there is only one root hash.
    * @param root The root hash containing the cumulative rewards plus the daily rewards.
-   * @param totalRewards The total rewads being allocation with this merkle root. This must also include the boostRewards
+   * @param baseRewards The rewards being allocated based on the daily emissions. Not including any rewards coming from boosts
    * @param boostRewards The amount of rewards that are being allocated as part of a boost.
    * */
   function submitMerkleRoot(
     bytes32 root,
-    uint256 totalRewards,
+    uint256 baseRewards,
     uint256 boostRewards
   ) external override onlyRole(DISTRIBUTOR_ROLE) rateLimit whenNotPaused returns (bool) {
     uint256 activeCycle = cycle;
@@ -138,14 +138,13 @@ contract RewardPool is
     rewardsVault.pullDailyEmissions();
     uint256 balanceAfter = token.balanceOf(address(this));
     uint256 delta = balanceAfter - balanceBefore;
-    uint256 vaultRewards = totalRewards - boostRewards;
 
     // The rewards vault will always send as much as it has up to the daily emissions amount.
     // If are distributing less than the daily emission send the change to the treasury.
     // The boost is coming from a different pool so it doesnt count again the change
-    if (delta > vaultRewards) {
-      token.safeTransfer(rewardsChangeTreasury, delta - vaultRewards);
-    } else if (delta < vaultRewards) {
+    if (delta > baseRewards) {
+      token.safeTransfer(rewardsChangeTreasury, delta - baseRewards);
+    } else if (delta < baseRewards) {
       revert TotalRewardsExceedEmissionFromVault();
     }
 

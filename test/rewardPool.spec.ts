@@ -252,7 +252,7 @@ describe('RewardPool', () => {
       // Total rewards are 5000. 4000 from the vault and 1000 from the boost treasury
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root1, ethers.utils.parseEther('5000'), ethers.utils.parseEther('1000'));
+        .submitMerkleRoot(root1, ethers.utils.parseEther('4000'), ethers.utils.parseEther('1000'));
       const poolBalanceAfter = await token.balanceOf(rewardPool.address)
       const treasuryBalanceAfter = await token.balanceOf(treasury.address)
 
