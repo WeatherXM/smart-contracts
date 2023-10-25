@@ -13,6 +13,7 @@ interface IRewardPool {
   error TransferFailed();
   error TargetAddressIsZero();
   error TargetAddressIsContractAddress();
+  error TotalRewardsExceedEmissionFromVault();
 
   /**
    * @dev Emitted when root hash is submitted

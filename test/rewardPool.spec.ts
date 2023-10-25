@@ -76,6 +76,7 @@ describe('RewardPool', () => {
       token,
       distributor,
       rewardPoolBalance,
+      treasury,
       addr2,
       addr3,
       addr4,
@@ -174,7 +175,10 @@ describe('RewardPool', () => {
         deployInitialStateFixture
       );
       mine(1);
-      const tree1 = StandardMerkleTree.of([[addr2.address, '1']], ['address', 'uint256']);
+      const tree1 = StandardMerkleTree.of(
+        [[addr2.address, '1']],
+        ['address', 'uint256']
+      );
       const root1 = tree1.root;
       const cycleNumber1 = await rewardPool.cycle();
       expect(cycleNumber1.toNumber()).to.equal(0);
@@ -186,7 +190,10 @@ describe('RewardPool', () => {
 
       time.increase(86400);
 
-      const tree2 = StandardMerkleTree.of([[addr2.address, '2']], ['address', 'uint256']);
+      const tree2 = StandardMerkleTree.of(
+        [[addr2.address, '2']],
+        ['address', 'uint256']
+      );
       const root2 = tree2.root;
       const cycleNumber2 = await rewardPool.cycle();
       expect(cycleNumber2.toNumber()).to.equal(1);
@@ -198,7 +205,10 @@ describe('RewardPool', () => {
 
       time.increase(86400 * 2);
 
-      const tree3 = StandardMerkleTree.of([[addr2.address, '3']], ['address', 'uint256']);
+      const tree3 = StandardMerkleTree.of(
+        [[addr2.address, '3']],
+        ['address', 'uint256']
+      );
       const root3 = tree3.root;
       const cycleNumber3 = await rewardPool.cycle();
       expect(cycleNumber3.toNumber()).to.equal(2);
@@ -208,7 +218,10 @@ describe('RewardPool', () => {
       const root3_actual = await rewardPool.connect(distributor).roots(2);
       expect(root3_actual).to.equal(root3);
 
-      const tree4 = StandardMerkleTree.of([[addr2.address, '4']], ['address', 'uint256']);
+      const tree4 = StandardMerkleTree.of(
+        [[addr2.address, '4']],
+        ['address', 'uint256']
+      );
       const root4 = tree4.root;
       const cycleNumber4 = await rewardPool.cycle();
       expect(cycleNumber4.toNumber()).to.equal(3);
@@ -217,7 +230,82 @@ describe('RewardPool', () => {
         .submitMerkleRoot(root4, ethers.utils.parseEther(String(14_246)), '0');
       const root4_actual = await rewardPool.connect(distributor).roots(3);
       expect(root4_actual).to.equal(root4);
+    });
 
+    it('should transfer the boost rewards from the rewardsChangeTreasury', async () => {
+      const { rewardPool, distributor, addr2, addr3, token, treasury } = await loadFixture(
+        deployInitialStateFixture
+      );
+      mine(1);
+      const tree1 = StandardMerkleTree.of(
+        [
+          [addr2.address, ethers.utils.parseEther('2000')],
+          [addr3.address, ethers.utils.parseEther('3000')]
+        ],
+        ['address', 'uint256']
+      );
+      await token.transfer(treasury.address, ethers.utils.parseEther('10000'))
+      await token.connect(treasury).approve(rewardPool.address, ethers.utils.parseEther('10000'))
+      const root1 = tree1.root;
+      const poolBalanceBefore = await token.balanceOf(rewardPool.address)
+      const treasuryBalanceBefore = await token.balanceOf(treasury.address)
+      // Total rewards are 5000. 4000 from the vault and 1000 from the boost treasury
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root1, ethers.utils.parseEther('5000'), ethers.utils.parseEther('1000'));
+      const poolBalanceAfter = await token.balanceOf(rewardPool.address)
+      const treasuryBalanceAfter = await token.balanceOf(treasury.address)
+
+      expect(poolBalanceBefore).to.equal('0')
+      // Pool balance is 5_000 which is the total rewards
+      expect(poolBalanceAfter).to.equal(ethers.utils.parseEther(String(5_000)))
+      expect(treasuryBalanceBefore).to.equal(ethers.utils.parseEther('10000'))
+      // The new treasury balance is 14_246 - 4_000 which is the change from the daily emissions since we are only giving 4000
+      // plus the 10_000 which it initially had minus the 1_000 that we are giving as boost
+      expect(treasuryBalanceAfter).to.equal(ethers.utils.parseEther(String(14_246 - 4_000 + 10_000 - 1_000)))
+
+    })
+
+    it('should revert if it cannot transfer tokens from the rewardsChangeTreasury', async () => {
+      const { rewardPool, distributor, addr2, addr3, token, treasury } = await loadFixture(
+        deployInitialStateFixture
+      );
+      mine(1);
+      const tree1 = StandardMerkleTree.of(
+        [
+          [addr2.address, ethers.utils.parseEther('2000')],
+          [addr3.address, ethers.utils.parseEther('3000')]
+        ],
+        ['address', 'uint256']
+      );
+      await token.transfer(treasury.address, ethers.utils.parseEther('10000'))
+      const root1 = tree1.root;
+      await expect(
+        rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root1, ethers.utils.parseEther('5000'), ethers.utils.parseEther('1000'))
+      ).to.be.revertedWith('ERC20: insufficient allowance')
+    })
+
+    it('should revert if it does not receive enough rewards from the rewards vault', async () => {
+      const { rewardPool, distributor, addr2, addr3 } = await loadFixture(
+        deployInitialStateFixture
+      );
+      mine(1);
+      const tree1 = StandardMerkleTree.of(
+        [
+          [addr2.address, ethers.utils.parseEther('20000')],
+          [addr3.address, ethers.utils.parseEther('30000')]
+        ],
+        ['address', 'uint256']
+      );
+      const root1 = tree1.root;
+      // Total rewards are more than the daily emissions from the vault
+      await expect(
+        rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root1, ethers.utils.parseEther('50000'), '0')
+      ).to.be.revertedWithCustomError(rewardPool, 'TotalRewardsExceedEmissionFromVault')
     })
   });
 
@@ -351,7 +439,11 @@ describe('RewardPool', () => {
       const rewardCycleUpdated = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)), '0');
+        .submitMerkleRoot(
+          updatedRoot,
+          ethers.utils.parseEther(String(14_246)),
+          '0'
+        );
 
       const remainedTokensUpdated =
         await rewardPool.getRemainingAllocatedRewards(
@@ -388,7 +480,11 @@ describe('RewardPool', () => {
       const rewardCycleUpdated = await rewardPool.cycle();
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)), '0');
+        .submitMerkleRoot(
+          updatedRoot,
+          ethers.utils.parseEther(String(14_246)),
+          '0'
+        );
       await expect(
         rewardPool
           .connect(distributor)
@@ -782,7 +878,11 @@ describe('RewardPool', () => {
       await time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)), '0');
+        .submitMerkleRoot(
+          updatedRoot,
+          ethers.utils.parseEther(String(14_246)),
+          '0'
+        );
       const withdrawalAmount = ethers.utils.parseEther(String(20));
       await rewardPool
         .connect(addr2)
@@ -859,7 +959,11 @@ describe('RewardPool', () => {
       time.increase(90000);
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(updatedRoot, ethers.utils.parseEther(String(14_246)), '0');
+        .submitMerkleRoot(
+          updatedRoot,
+          ethers.utils.parseEther(String(14_246)),
+          '0'
+        );
       await rewardPool
         .connect(addr2)
         .claim(

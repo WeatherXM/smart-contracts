@@ -138,12 +138,15 @@ contract RewardPool is
     rewardsVault.pullDailyEmissions();
     uint256 balanceAfter = token.balanceOf(address(this));
     uint256 delta = balanceAfter - balanceBefore;
+    uint256 vaultRewards = totalRewards - boostRewards;
 
     // The rewards vault will always send as much as it has up to the daily emissions amount.
     // If are distributing less than the daily emission send the change to the treasury.
     // The boost is coming from a different pool so it doesnt count again the change
-    if (delta - boostRewards > totalRewards) {
-      token.safeTransfer(rewardsChangeTreasury, delta - totalRewards);
+    if (delta > vaultRewards) {
+      token.safeTransfer(rewardsChangeTreasury, delta - vaultRewards);
+    } else if (delta < vaultRewards) {
+      revert TotalRewardsExceedEmissionFromVault();
     }
 
     if (boostRewards > 0) {
