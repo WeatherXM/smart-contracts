@@ -58,6 +58,10 @@ contract RewardsVault is Ownable {
     rewardDistributor = _rewardDistributor;
   }
 
+  /**
+   * Returnes the current index for the emission schedule based on the current block timestamp
+   * and the first time we pulled rewards. The return value is valid only after the first time we pull rewards
+   */
   function getCurrIndex() public view returns (uint256) {
     uint256 currIndex = ((block.timestamp - firstRewardTs) / rewardDistributionPeriod) + 1;
 

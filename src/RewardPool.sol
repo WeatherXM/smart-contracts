@@ -123,12 +123,12 @@ contract RewardPool is
    * The root hashes are stored in a mapping where the cycle is the accessor.
    * For every cycle there is only one root hash.
    * @param root The root hash containing the cumulative rewards plus the daily rewards.
-   * @param totalRewards The total rewads being allocation with this merkle root. This must also include the boostRewards
+   * @param baseRewards The rewards being allocated based on the daily emissions. Not including any rewards coming from boosts
    * @param boostRewards The amount of rewards that are being allocated as part of a boost.
    * */
   function submitMerkleRoot(
     bytes32 root,
-    uint256 totalRewards,
+    uint256 baseRewards,
     uint256 boostRewards
   ) external override onlyRole(DISTRIBUTOR_ROLE) rateLimit whenNotPaused returns (bool) {
     uint256 activeCycle = cycle;
@@ -142,8 +142,10 @@ contract RewardPool is
     // The rewards vault will always send as much as it has up to the daily emissions amount.
     // If are distributing less than the daily emission send the change to the treasury.
     // The boost is coming from a different pool so it doesnt count again the change
-    if (delta - boostRewards > totalRewards) {
-      token.safeTransfer(rewardsChangeTreasury, delta - totalRewards);
+    if (delta > baseRewards) {
+      token.safeTransfer(rewardsChangeTreasury, delta - baseRewards);
+    } else if (delta < baseRewards) {
+      revert TotalRewardsExceedEmissionFromVault();
     }
 
     if (boostRewards > 0) {
@@ -168,7 +170,7 @@ contract RewardPool is
     uint256 _cycle,
     bytes32[] calldata proof
   ) external view override whenNotPaused returns (uint256) {
-    return allocatedRewardsForProofMinusRewarded(account, amount, _cycle, proof);
+    return _allocatedRewardsForProofMinusRewarded(account, amount, _cycle, proof);
   }
 
   /**
@@ -179,7 +181,7 @@ contract RewardPool is
    * @param _cycle cycle for which to choose the root hash
    * @param proof The recipient's proof
    * */
-  function allocatedRewardsForProofMinusRewarded(
+  function _allocatedRewardsForProofMinusRewarded(
     address account,
     uint256 amount,
     uint256 _cycle,
@@ -188,7 +190,7 @@ contract RewardPool is
     if (amount == 0) {
       revert AmountRequestedIsZero();
     }
-    uint256 total = verify(account, amount, _cycle, proof);
+    uint256 total = _verify(account, amount, _cycle, proof);
     if (claims[account] < total) {
       return total.sub(claims[account]);
     } else {
@@ -219,7 +221,7 @@ contract RewardPool is
     if (amount == 0) {
       revert AmountRequestedIsZero();
     }
-    if (amount > allocatedRewardsForProofMinusRewarded(to, totalRewards, _cycle, proof)) {
+    if (amount > _allocatedRewardsForProofMinusRewarded(to, totalRewards, _cycle, proof)) {
       revert AmountIsOverAvailableRewardsToClaim();
     }
     claims[to] = claims[to].add(amount);
@@ -235,7 +237,7 @@ contract RewardPool is
    * @param _cycle The desired cycle for which to choose the root hash
    * @param proof The _proof that enables the claim of the requested amount of tokens
    * */
-  function verify(
+  function _verify(
     address account,
     uint256 amount,
     uint256 _cycle,
@@ -267,7 +269,7 @@ contract RewardPool is
     if (amount == 0) {
       revert AmountRequestedIsZero();
     }
-    if (amount > allocatedRewardsForProofMinusRewarded(_msgSender(), _totalRewards, _cycle, proof)) {
+    if (amount > _allocatedRewardsForProofMinusRewarded(_msgSender(), _totalRewards, _cycle, proof)) {
       revert AmountIsOverAvailableRewardsToClaim();
     }
 

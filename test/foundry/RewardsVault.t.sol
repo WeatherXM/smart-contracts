@@ -132,17 +132,17 @@ contract RewardsVaultTest is Test {
     rewardsVault.pullDailyEmissions();
     assertEq(wxm.balanceOf(rewardsDistributor), maxDailyEmission);
 
-    // Move time 6 hours ahead 
+    // Move time 6 hours ahead
     vm.warp(currTs + 6 hours);
     vm.expectRevert(RewardsVault.EmissionsRateLimitingInEffect.selector);
     rewardsVault.pullDailyEmissions();
 
-    // Move time 12 hours ahead 
+    // Move time 12 hours ahead
     vm.warp(currTs + 12 hours);
     vm.expectRevert(RewardsVault.EmissionsRateLimitingInEffect.selector);
     rewardsVault.pullDailyEmissions();
 
-    // Move time 18 hours ahead 
+    // Move time 18 hours ahead
     vm.warp(currTs + 18 hours);
     vm.expectRevert(RewardsVault.EmissionsRateLimitingInEffect.selector);
     rewardsVault.pullDailyEmissions();
@@ -166,6 +166,44 @@ contract RewardsVaultTest is Test {
 
     rewardsVault.pullDailyEmissions();
     assertEq(wxm.balanceOf(rewardsDistributor), maxDailyEmission * 4);
+
+    vm.stopPrank();
+  }
+
+  function testGetCurrIndex() public {
+    vm.startPrank(owner);
+    wxm.transfer(address(rewardsVault), 55000000 * 10 ** 18);
+    vm.stopPrank();
+
+    vm.startPrank(rewardsDistributor);
+    rewardsVault.pullDailyEmissions();
+
+    assertEq(rewardsVault.getCurrIndex(), 1);
+
+    uint256 currTs = block.timestamp;
+    vm.warp(currTs + 6 hours);
+    assertEq(rewardsVault.getCurrIndex(), 1);
+
+    vm.warp(currTs + 24 hours - 1);
+    assertEq(rewardsVault.getCurrIndex(), 1);
+
+    vm.warp(currTs + 24 hours);
+    assertEq(rewardsVault.getCurrIndex(), 2);
+
+    vm.warp(currTs + 24 hours + 1);
+    assertEq(rewardsVault.getCurrIndex(), 2);
+
+    vm.warp(currTs + 48 hours - 1);
+    assertEq(rewardsVault.getCurrIndex(), 2);
+
+    vm.warp(currTs + 48 hours);
+    assertEq(rewardsVault.getCurrIndex(), 3);
+
+    vm.warp(currTs + 72 hours - 1);
+    assertEq(rewardsVault.getCurrIndex(), 3);
+
+    vm.warp(currTs + 72 hours);
+    assertEq(rewardsVault.getCurrIndex(), 4);
 
     vm.stopPrank();
   }
