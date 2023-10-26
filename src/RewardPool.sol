@@ -12,6 +12,7 @@ import { IERC20Upgradeable } from "lib/openzeppelin-contracts-upgradeable/contra
 import { AccessControlEnumerableUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlEnumerableUpgradeable.sol";
 import { IRewardPool } from "./interfaces/IRewardPool.sol";
 import { IRewardsVault } from "./interfaces/IRewardsVault.sol";
+import { ECDSA } from "lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 
 /**
  * @title RewardPool contract.
@@ -29,6 +30,7 @@ contract RewardPool is
   PausableUpgradeable
 {
   using SafeERC20Upgradeable for IERC20Upgradeable;
+  using ECDSA for bytes32;
 
   /* ========== LIBRARIES ========== */
   using SafeMath for uint256;
@@ -38,6 +40,7 @@ contract RewardPool is
   IERC20Upgradeable public token;
   mapping(address => uint256) public claims;
   mapping(uint256 => bytes32) public roots;
+  mapping(bytes32 => bool) public nonces;
 
   uint256 public cycle;
   uint256 public lastRewardRootTs;
@@ -279,6 +282,61 @@ contract RewardPool is
     token.safeTransfer(_msgSender(), amount);
 
     emit Claimed(_msgSender(), amount);
+  }
+
+  function claimFor(
+    address rewardReceiver,
+    uint256 amount,
+    uint256 totalRewards,
+    uint256 _cycle,
+    uint256 claimForFee,
+    bytes32[] calldata proof,
+    bytes32 nonce,
+    bytes calldata signature
+  ) external whenNotPaused nonReentrant {
+    _verifySignatureForClaimFor(_msgSender(), rewardReceiver, amount, _cycle, claimForFee, nonce, signature);
+    if (totalRewards == 0) {
+      revert TotalRewardsAreZero();
+    }
+    if (amount == 0) {
+      revert AmountRequestedIsZero();
+    }
+    if (amount > _allocatedRewardsForProofMinusRewarded(rewardReceiver, totalRewards, _cycle, proof)) {
+      revert AmountIsOverAvailableRewardsToClaim();
+    }
+
+    claims[rewardReceiver] = claims[rewardReceiver].add(amount);
+    claimedRewards = claimedRewards.add(amount);
+    // The user that is claiming gets the claimed amount minus the fee
+    token.safeTransfer(rewardReceiver, amount - claimForFee);
+    // The sender of the meta transaction gets the fee
+    token.safeTransfer(_msgSender(), claimForFee);
+
+    emit Claimed(rewardReceiver, amount);
+  }
+
+  function _verifySignatureForClaimFor(
+    address txSender,
+    address rewardReceiver,
+    uint256 amount,
+    uint256 _cycle,
+    uint256 claimForFee,
+    bytes32 nonce,
+    bytes calldata signature
+  ) internal {
+    if (nonces[nonce]) {
+      revert SignatureNonceHasAlreadyBeenUsed();
+    }
+
+    bytes32 signedHash = keccak256(abi.encodePacked(txSender, amount, _cycle, claimForFee, nonce))
+      .toEthSignedMessageHash();
+    address signer = signedHash.recover(signature);
+
+    if (signer != rewardReceiver) {
+      revert InvalidSignature();
+    }
+
+    nonces[nonce] = true;
   }
 
   function pause() public onlyRole(DEFAULT_ADMIN_ROLE) {

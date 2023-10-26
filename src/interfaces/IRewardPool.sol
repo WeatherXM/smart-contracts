@@ -14,6 +14,8 @@ interface IRewardPool {
   error TargetAddressIsZero();
   error TargetAddressIsContractAddress();
   error TotalRewardsExceedEmissionFromVault();
+  error SignatureNonceHasAlreadyBeenUsed();
+  error InvalidSignature();
 
   /**
    * @dev Emitted when root hash is submitted
