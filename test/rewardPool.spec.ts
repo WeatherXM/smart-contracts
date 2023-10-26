@@ -1,6 +1,7 @@
 import { StandardMerkleTree } from '@openzeppelin/merkle-tree';
-import { ethers, upgrades } from 'hardhat';
+import { ethers, upgrades, config } from 'hardhat';
 import { time, mine } from '@nomicfoundation/hardhat-network-helpers';
+import Web3 from 'web3';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
@@ -19,8 +20,15 @@ describe('RewardPool', () => {
       addr7,
       addr8,
       addr9,
-      treasury
+      treasury,
+      metaTxSender
     ] = await ethers.getSigners();
+    const accounts: any = config.networks.hardhat.accounts;
+    const addr2Wallet = ethers.Wallet.fromMnemonic(
+      accounts.mnemonic,
+      accounts.path + '/2'
+    );
+    const addr2PrivKey = addr2Wallet.privateKey;
     const rewardPoolBalance = ethers.utils.parseEther('22446');
     rewards = [
       [await addr2.getAddress(), ethers.utils.parseEther(String(10.0))],
@@ -77,11 +85,13 @@ describe('RewardPool', () => {
       distributor,
       rewardPoolBalance,
       treasury,
+      metaTxSender,
       addr2,
       addr3,
       addr4,
       addr6,
-      addr9
+      addr9,
+      addr2PrivKey
     };
   }
   afterEach(async () => {
@@ -105,6 +115,31 @@ describe('RewardPool', () => {
       ethers.utils.parseEther(String(10.0))
     ];
   });
+
+  function signMessage(
+    sender: string,
+    amount: string,
+    cycle: string,
+    fee: string,
+    nonce: string,
+    privKey: string
+  ) {
+    const web3 = new Web3();
+    const hexAmount = Web3.utils
+      .padLeft(Web3.utils.numberToHex(amount), 64)
+      .slice(2);
+    const hexCycle = Web3.utils
+      .padLeft(Web3.utils.numberToHex(cycle), 64)
+      .slice(2);
+    const hexFee = Web3.utils.padLeft(Web3.utils.numberToHex(fee), 64).slice(2);
+    const message = `${sender}${hexAmount}${hexCycle}${hexFee}${nonce.slice(
+      2
+    )}`;
+    const hashedMessage = web3.utils.soliditySha3(message);
+
+    return web3.eth.accounts.sign(hashedMessage!, privKey);
+  }
+
   describe('submitMerkleRoot', () => {
     it('should submit root hash starting from index 0', async () => {
       const { rewards, rewardPool, distributor } = await loadFixture(
@@ -233,9 +268,8 @@ describe('RewardPool', () => {
     });
 
     it('should transfer the boost rewards from the rewardsChangeTreasury', async () => {
-      const { rewardPool, distributor, addr2, addr3, token, treasury } = await loadFixture(
-        deployInitialStateFixture
-      );
+      const { rewardPool, distributor, addr2, addr3, token, treasury } =
+        await loadFixture(deployInitialStateFixture);
       mine(1);
       const tree1 = StandardMerkleTree.of(
         [
@@ -244,32 +278,38 @@ describe('RewardPool', () => {
         ],
         ['address', 'uint256']
       );
-      await token.transfer(treasury.address, ethers.utils.parseEther('10000'))
-      await token.connect(treasury).approve(rewardPool.address, ethers.utils.parseEther('10000'))
+      await token.transfer(treasury.address, ethers.utils.parseEther('10000'));
+      await token
+        .connect(treasury)
+        .approve(rewardPool.address, ethers.utils.parseEther('10000'));
       const root1 = tree1.root;
-      const poolBalanceBefore = await token.balanceOf(rewardPool.address)
-      const treasuryBalanceBefore = await token.balanceOf(treasury.address)
+      const poolBalanceBefore = await token.balanceOf(rewardPool.address);
+      const treasuryBalanceBefore = await token.balanceOf(treasury.address);
       // Total rewards are 5000. 4000 from the vault and 1000 from the boost treasury
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root1, ethers.utils.parseEther('5000'), ethers.utils.parseEther('1000'));
-      const poolBalanceAfter = await token.balanceOf(rewardPool.address)
-      const treasuryBalanceAfter = await token.balanceOf(treasury.address)
+        .submitMerkleRoot(
+          root1,
+          ethers.utils.parseEther('5000'),
+          ethers.utils.parseEther('1000')
+        );
+      const poolBalanceAfter = await token.balanceOf(rewardPool.address);
+      const treasuryBalanceAfter = await token.balanceOf(treasury.address);
 
-      expect(poolBalanceBefore).to.equal('0')
+      expect(poolBalanceBefore).to.equal('0');
       // Pool balance is 5_000 which is the total rewards
-      expect(poolBalanceAfter).to.equal(ethers.utils.parseEther(String(5_000)))
-      expect(treasuryBalanceBefore).to.equal(ethers.utils.parseEther('10000'))
+      expect(poolBalanceAfter).to.equal(ethers.utils.parseEther(String(5_000)));
+      expect(treasuryBalanceBefore).to.equal(ethers.utils.parseEther('10000'));
       // The new treasury balance is 14_246 - 4_000 which is the change from the daily emissions since we are only giving 4000
       // plus the 10_000 which it initially had minus the 1_000 that we are giving as boost
-      expect(treasuryBalanceAfter).to.equal(ethers.utils.parseEther(String(14_246 - 4_000 + 10_000 - 1_000)))
-
-    })
+      expect(treasuryBalanceAfter).to.equal(
+        ethers.utils.parseEther(String(14_246 - 4_000 + 10_000 - 1_000))
+      );
+    });
 
     it('should revert if it cannot transfer tokens from the rewardsChangeTreasury', async () => {
-      const { rewardPool, distributor, addr2, addr3, token, treasury } = await loadFixture(
-        deployInitialStateFixture
-      );
+      const { rewardPool, distributor, addr2, addr3, token, treasury } =
+        await loadFixture(deployInitialStateFixture);
       mine(1);
       const tree1 = StandardMerkleTree.of(
         [
@@ -278,14 +318,18 @@ describe('RewardPool', () => {
         ],
         ['address', 'uint256']
       );
-      await token.transfer(treasury.address, ethers.utils.parseEther('10000'))
+      await token.transfer(treasury.address, ethers.utils.parseEther('10000'));
       const root1 = tree1.root;
       await expect(
         rewardPool
-        .connect(distributor)
-        .submitMerkleRoot(root1, ethers.utils.parseEther('5000'), ethers.utils.parseEther('1000'))
-      ).to.be.revertedWith('ERC20: insufficient allowance')
-    })
+          .connect(distributor)
+          .submitMerkleRoot(
+            root1,
+            ethers.utils.parseEther('5000'),
+            ethers.utils.parseEther('1000')
+          )
+      ).to.be.revertedWith('ERC20: insufficient allowance');
+    });
 
     it('should revert if it does not receive enough rewards from the rewards vault', async () => {
       const { rewardPool, distributor, addr2, addr3 } = await loadFixture(
@@ -303,10 +347,13 @@ describe('RewardPool', () => {
       // Total rewards are more than the daily emissions from the vault
       await expect(
         rewardPool
-        .connect(distributor)
-        .submitMerkleRoot(root1, ethers.utils.parseEther('50000'), '0')
-      ).to.be.revertedWithCustomError(rewardPool, 'TotalRewardsExceedEmissionFromVault')
-    })
+          .connect(distributor)
+          .submitMerkleRoot(root1, ethers.utils.parseEther('50000'), '0')
+      ).to.be.revertedWithCustomError(
+        rewardPool,
+        'TotalRewardsExceedEmissionFromVault'
+      );
+    });
   });
 
   describe('getRecipientRewardsBalance', () => {
@@ -1138,6 +1185,707 @@ describe('RewardPool', () => {
       expect(
         ethers.utils.formatUnits(String(proofBalanceAfterClaim), 'wei')
       ).to.equal(ethers.utils.formatUnits(String(0), 'wei'));
+    });
+  });
+
+  describe('claimFor', () => {
+    async function deployClaimFixture() {
+      const { rewards, rewardPool, token, distributor } = await loadFixture(
+        deployInitialStateFixture
+      );
+      const rewardee = rewards[0][0];
+      const rewardee2 = rewards[1][0];
+      const rewardAmount = rewards[0][1];
+      let proof: string[] | undefined;
+      let proof7: string[] | undefined;
+      let garbageProof: string[] | undefined;
+      let updatedProof: string[] | undefined;
+      let decimalRewardsProof: string[] | undefined;
+      const tree = StandardMerkleTree.of(rewards, ['address', 'uint256']);
+      for (const [i, v] of tree.entries()) {
+        if (v[0] === rewardee) {
+          proof = tree.getProof(i);
+        }
+        if (v[0] === rewardee2) {
+          garbageProof = tree.getProof(i);
+        }
+      }
+      const root = tree.root;
+      time.increase(90000);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(root, ethers.utils.parseEther(String(14_246)), '0');
+      const insufficientFundsRewardee = rewards[7][0];
+      const insufficientFundsRewardAmount = rewards[7][1];
+      for (const [i, v] of tree.entries()) {
+        if (v[0] === insufficientFundsRewardee) {
+          proof7 = tree.getProof(i);
+        }
+      }
+      for (const [i, v] of tree.entries()) {
+        if (v[0] === rewards[4][0]) {
+          decimalRewardsProof = tree.getProof(i);
+        }
+      }
+      const rewardPoolBalance = await token.balanceOf(rewardPool.address);
+
+      return {
+        rewardee,
+        rewardAmount,
+        rewardPoolBalance,
+        proof,
+        proof7,
+        garbageProof,
+        updatedProof,
+        decimalRewardsProof,
+        insufficientFundsRewardee,
+        insufficientFundsRewardAmount
+      };
+    }
+
+    it('should claim up to the allotted amount from the pool', async () => {
+      const { rewardPool, addr2, token, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(
+        deployClaimFixture
+      );
+      const claimNonce = Web3.utils.randomHex(32);
+      const sig = signMessage(
+        metaTxSender.address,
+        rewardAmount.toString(),
+        '0',
+        '0',
+        claimNonce,
+        addr2PrivKey
+      );
+      expect(
+        await rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            rewardAmount,
+            rewardAmount,
+            0,
+            0,
+            proof,
+            claimNonce,
+            sig.signature
+          )
+      )
+        .to.emit(rewardPool, 'Claimed')
+        .withArgs(rewardee, rewardAmount);
+
+      const rewardeeBalance = await token.balanceOf(rewardee);
+      const txSenderBalance = await token.balanceOf(metaTxSender.address);
+      const claims = await rewardPool.claims(rewardee);
+      const proofBalanceAfterClaim = await rewardPool
+        .connect(addr2)
+        .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
+      expect(ethers.utils.formatUnits(String(rewardeeBalance), 'wei')).to.equal(
+        ethers.utils.formatUnits(String(rewardAmount), 'wei')
+      );
+      expect(ethers.utils.formatUnits(String(claims), 'wei')).to.equal(
+        ethers.utils.formatUnits(String(rewardAmount), 'wei')
+      );
+      expect(
+        ethers.utils.formatUnits(String(proofBalanceAfterClaim), 'wei')
+      ).to.equal(ethers.utils.formatUnits(String(0), 'wei'));
+      expect(txSenderBalance).to.equal('0');
+    });
+
+    it('should allow claiming less than the total allotted amount', async () => {
+      const { rewardPool, addr2, token, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(
+        deployClaimFixture
+      );
+      const withdrawalAmount = ethers.utils.parseEther(String(8));
+      // substraction of numbers in WEI should not result to a number with decimals
+      // when this happens, substraction is made between Integers and then transform to WEI
+      const remainingRewardPoolBalance = ethers.utils.parseEther(
+        String(14_246 - 8)
+      );
+      const claimNonce = Web3.utils.randomHex(32);
+      const sig = signMessage(
+        metaTxSender.address,
+        withdrawalAmount.toString(),
+        '0',
+        '0',
+        claimNonce,
+        addr2PrivKey
+      );
+      await expect(
+        await rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            withdrawalAmount,
+            rewardAmount,
+            0,
+            0,
+            proof,
+            claimNonce,
+            sig.signature
+          )
+      )
+        .to.emit(rewardPool, 'Claimed')
+        .withArgs(rewardee, withdrawalAmount);
+
+      const rewardeeBalance = await token.balanceOf(rewardee);
+      const poolBalance = await token.balanceOf(rewardPool.address);
+      const claims = await rewardPool.claims(rewardee);
+      await rewardPool.getRemainingAllocatedRewards(
+        rewardee,
+        rewardAmount,
+        0,
+        proof
+      );
+      expect(rewardeeBalance).to.be.equal(withdrawalAmount);
+      expect(claims).to.be.equal(withdrawalAmount);
+      expect(poolBalance).to.be.equal(remainingRewardPoolBalance);
+    });
+
+    it('should correctly send the fee to meta tx sender', async () => {
+      const { rewardPool, addr2, token, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(
+        deployClaimFixture
+      );
+      const feeAmount = ethers.utils.parseEther(String(3)).toString();
+      const claimNonce = Web3.utils.randomHex(32);
+      const sig = signMessage(
+        metaTxSender.address,
+        rewardAmount.toString(),
+        '0',
+        feeAmount,
+        claimNonce,
+        addr2PrivKey
+      );
+      expect(
+        await rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            rewardAmount,
+            rewardAmount,
+            0,
+            feeAmount,
+            proof,
+            claimNonce,
+            sig.signature
+          )
+      )
+        .to.emit(rewardPool, 'Claimed')
+        .withArgs(rewardee, rewardAmount);
+
+      const rewardeeBalance = await token.balanceOf(rewardee);
+      const claims = await rewardPool.claims(rewardee);
+      const proofBalanceAfterClaim = await rewardPool
+        .connect(addr2)
+        .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
+      expect(rewardeeBalance.toString()).to.equal(rewardAmount.sub(feeAmount));
+      expect(claims).to.equal(rewardAmount);
+      expect(proofBalanceAfterClaim).to.equal('0');
+    });
+
+    it('should allow making multiple claims within the allotted amount', async () => {
+      const { rewardPool, addr2, token, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(
+        deployClaimFixture
+      );
+      {
+        const claimNonce = Web3.utils.randomHex(32);
+        const claimAmount = ethers.utils.parseEther(String(5)).toString();
+        const sig = signMessage(
+          metaTxSender.address,
+          claimAmount.toString(),
+          '0',
+          '0',
+          claimNonce,
+          addr2PrivKey
+        );
+        expect(
+          await rewardPool
+            .connect(metaTxSender)
+            .claimFor(
+              addr2.address,
+              claimAmount,
+              rewardAmount,
+              0,
+              0,
+              proof,
+              claimNonce,
+              sig.signature
+            )
+        )
+          .to.emit(rewardPool, 'Claimed')
+          .withArgs(rewardee, claimAmount);
+
+        const rewardeeBalance = await token.balanceOf(rewardee);
+        const txSenderBalance = await token.balanceOf(metaTxSender.address);
+        const claims = await rewardPool.claims(rewardee);
+        const proofBalanceAfterClaim = await rewardPool
+          .connect(addr2)
+          .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
+        expect(rewardeeBalance).to.equal(claimAmount);
+        expect(claims).to.equal(claimAmount);
+        expect(proofBalanceAfterClaim).to.equal(rewardAmount.sub(claimAmount));
+        expect(txSenderBalance).to.equal('0');
+      }
+
+      {
+        const rewardeeBalanceBefore = await token.balanceOf(rewardee);
+        const claimNonce = Web3.utils.randomHex(32);
+        const claimAmount = ethers.utils.parseEther(String(4));
+        const sig = signMessage(
+          metaTxSender.address,
+          claimAmount.toString(),
+          '0',
+          '0',
+          claimNonce,
+          addr2PrivKey
+        );
+        expect(
+          await rewardPool
+            .connect(metaTxSender)
+            .claimFor(
+              addr2.address,
+              claimAmount,
+              rewardAmount,
+              0,
+              0,
+              proof,
+              claimNonce,
+              sig.signature
+            )
+        )
+          .to.emit(rewardPool, 'Claimed')
+          .withArgs(rewardee, claimAmount);
+
+        const rewardeeBalance = await token.balanceOf(rewardee);
+        const txSenderBalance = await token.balanceOf(metaTxSender.address);
+        const claims = await rewardPool.claims(rewardee);
+        const proofBalanceAfterClaim = await rewardPool
+          .connect(addr2)
+          .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
+        expect(rewardeeBalance).to.equal(
+          claimAmount.add(rewardeeBalanceBefore)
+        );
+        expect(claims).to.equal(ethers.utils.parseEther(String(9)));
+        expect(proofBalanceAfterClaim).to.equal(
+          ethers.utils.parseEther(String(1))
+        );
+        expect(txSenderBalance).to.equal('0');
+      }
+    });
+
+    it('should not allow claiming more that the total allotted amount', async () => {
+      const { rewardPool, addr2, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { proof } = await loadFixture(deployClaimFixture);
+      const feeAmount = ethers.utils.parseEther(String(1)).toString();
+      const claimNonce = Web3.utils.randomHex(32);
+      const claimAmount = ethers.utils.parseEther(String(5)).toString();
+      const rewardAmount = ethers.utils.parseEther(String(11));
+      const sig = signMessage(
+        metaTxSender.address,
+        claimAmount.toString(),
+        '0',
+        feeAmount,
+        claimNonce,
+        addr2PrivKey
+      );
+      await expect(
+        rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            claimAmount,
+            rewardAmount,
+            0,
+            feeAmount,
+            proof,
+            claimNonce,
+            sig.signature
+          )
+      ).to.be.revertedWith('INVALID PROOF');
+    });
+    it('should not allow claiming with a wrong proof', async () => {
+      const { rewardPool, addr2, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { rewardAmount, proof7 } = await loadFixture(deployClaimFixture);
+      const feeAmount = ethers.utils.parseEther(String(1)).toString();
+      const claimNonce = Web3.utils.randomHex(32);
+      const claimAmount = ethers.utils.parseEther(String(5)).toString();
+      const sig = signMessage(
+        metaTxSender.address,
+        claimAmount.toString(),
+        '0',
+        feeAmount,
+        claimNonce,
+        addr2PrivKey
+      );
+      await expect(
+        rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            claimAmount,
+            rewardAmount,
+            0,
+            feeAmount,
+            proof7,
+            claimNonce,
+            sig.signature
+          )
+      ).to.be.revertedWith('INVALID PROOF');
+    });
+
+    it('should not allow claiming 0 tokens', async () => {
+      const { rewardPool, addr2, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { rewardAmount, proof } = await loadFixture(deployClaimFixture);
+      const feeAmount = ethers.utils.parseEther(String(1)).toString();
+      const claimNonce = Web3.utils.randomHex(32);
+      const claimAmount = '0';
+      const sig = signMessage(
+        metaTxSender.address,
+        claimAmount.toString(),
+        '0',
+        feeAmount,
+        claimNonce,
+        addr2PrivKey
+      );
+      await expect(
+        rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            claimAmount,
+            rewardAmount,
+            0,
+            feeAmount,
+            proof,
+            claimNonce,
+            sig.signature
+          )
+      ).to.be.revertedWithCustomError(rewardPool, 'AmountRequestedIsZero');
+    });
+
+    it('should allow claiming using older cycle proofs', async () => {
+      const {
+        rewardPool,
+        addr2,
+        token,
+        metaTxSender,
+        addr2PrivKey,
+        distributor
+      } = await loadFixture(deployInitialStateFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(
+        deployClaimFixture
+      );
+      let updatedProof: string[] | undefined;
+      const updatedRewards = rewards.slice();
+      const updatedRewardAmount = ethers.utils.parseEther(String(20));
+      updatedRewards[0][1] = updatedRewardAmount;
+      const updatedMerkleTree = StandardMerkleTree.of(updatedRewards, [
+        'address',
+        'uint256'
+      ]);
+      const updatedRoot = updatedMerkleTree.root;
+      for (const [i, v] of updatedMerkleTree.entries()) {
+        if (v[0] === rewardee) {
+          updatedProof = updatedMerkleTree.getProof(i);
+        }
+      }
+      await time.increase(90000);
+      await rewardPool
+        .connect(distributor)
+        .submitMerkleRoot(
+          updatedRoot,
+          ethers.utils.parseEther(String(14_246)),
+          '0'
+        );
+      {
+        const claimNonce = Web3.utils.randomHex(32);
+        const sig = signMessage(
+          metaTxSender.address,
+          rewardAmount.toString(),
+          '0',
+          '0',
+          claimNonce,
+          addr2PrivKey
+        );
+        expect(
+          await rewardPool
+            .connect(metaTxSender)
+            .claimFor(
+              addr2.address,
+              rewardAmount,
+              rewardAmount,
+              0,
+              0,
+              proof,
+              claimNonce,
+              sig.signature
+            )
+        )
+          .to.emit(rewardPool, 'Claimed')
+          .withArgs(rewardee, rewardAmount);
+
+        const rewardeeBalance = await token.balanceOf(rewardee);
+        const txSenderBalance = await token.balanceOf(metaTxSender.address);
+        const claims = await rewardPool.claims(rewardee);
+        const proofBalanceAfterClaim = await rewardPool
+          .connect(addr2)
+          .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
+        expect(rewardeeBalance).to.equal(rewardAmount);
+        expect(claims).to.equal(rewardAmount);
+        expect(proofBalanceAfterClaim).to.equal('0');
+        expect(txSenderBalance).to.equal('0');
+      }
+
+      {
+        const claimNonce = Web3.utils.randomHex(32);
+        const sig = signMessage(
+          metaTxSender.address,
+          ethers.utils.parseEther(String(10)).toString(),
+          '1',
+          '0',
+          claimNonce,
+          addr2PrivKey
+        );
+        expect(
+          await rewardPool
+            .connect(metaTxSender)
+            .claimFor(
+              addr2.address,
+              ethers.utils.parseEther(String(10)),
+              updatedRewardAmount,
+              1,
+              0,
+              updatedProof,
+              claimNonce,
+              sig.signature
+            )
+        )
+          .to.emit(rewardPool, 'Claimed')
+          .withArgs(rewardee, updatedRewardAmount);
+
+        const rewardeeBalance = await token.balanceOf(rewardee);
+        const txSenderBalance = await token.balanceOf(metaTxSender.address);
+        const claims = await rewardPool.claims(rewardee);
+        const proofBalanceAfterClaim = await rewardPool
+          .connect(addr2)
+          .getRemainingAllocatedRewards(
+            rewardee,
+            updatedRewardAmount,
+            1,
+            updatedProof
+          );
+        expect(rewardeeBalance).to.equal(updatedRewardAmount);
+        expect(claims).to.equal(updatedRewardAmount);
+        expect(proofBalanceAfterClaim).to.equal('0');
+        expect(txSenderBalance).to.equal('0');
+      }
+    });
+
+    it('should revert if the pool is paused', async () => {
+      const { rewardPool, addr2, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { rewardAmount, proof } = await loadFixture(deployClaimFixture);
+      const feeAmount = ethers.utils.parseEther(String(1)).toString();
+      const wrongFeeAmount = ethers.utils.parseEther(String(2)).toString();
+      const claimNonce = Web3.utils.randomHex(32);
+      const claimAmount = ethers.utils.parseEther(String(3));
+      const sig = signMessage(
+        metaTxSender.address,
+        claimAmount.toString(),
+        '0',
+        feeAmount,
+        claimNonce,
+        addr2PrivKey
+      );
+      await rewardPool.pause();
+      await expect(
+        rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            claimAmount,
+            rewardAmount,
+            0,
+            wrongFeeAmount,
+            proof,
+            claimNonce,
+            sig.signature
+          )
+      ).to.be.revertedWith('Pausable: paused');
+    });
+
+    it('should revert if the fee does not match the signatures fee', async () => {
+      const { rewardPool, addr2, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { rewardAmount, proof } = await loadFixture(deployClaimFixture);
+      const feeAmount = ethers.utils.parseEther(String(1)).toString();
+      const wrongFeeAmount = ethers.utils.parseEther(String(2)).toString();
+      const claimNonce = Web3.utils.randomHex(32);
+      const claimAmount = ethers.utils.parseEther(String(3));
+      const sig = signMessage(
+        metaTxSender.address,
+        claimAmount.toString(),
+        '0',
+        feeAmount,
+        claimNonce,
+        addr2PrivKey
+      );
+      await expect(
+        rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            claimAmount,
+            rewardAmount,
+            0,
+            wrongFeeAmount,
+            proof,
+            claimNonce,
+            sig.signature
+          )
+      ).to.be.revertedWithCustomError(rewardPool, 'InvalidSignature');
+    });
+
+    it('should revert if the signature has been used before', async () => {
+      const { rewardPool, addr2, token, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(
+        deployClaimFixture
+      );
+      const feeAmount = ethers.utils.parseEther(String(1)).toString();
+      const claimNonce = Web3.utils.randomHex(32);
+      const claimAmount = ethers.utils.parseEther(String(3));
+      const sig = signMessage(
+        metaTxSender.address,
+        claimAmount.toString(),
+        '0',
+        feeAmount,
+        claimNonce,
+        addr2PrivKey
+      );
+      expect(
+        await rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            claimAmount,
+            rewardAmount,
+            0,
+            feeAmount,
+            proof,
+            claimNonce,
+            sig.signature
+          )
+      )
+        .to.emit(rewardPool, 'Claimed')
+        .withArgs(rewardee, claimAmount);
+
+      const rewardeeBalance = await token.balanceOf(rewardee);
+      const claims = await rewardPool.claims(rewardee);
+      const proofBalanceAfterClaim = await rewardPool
+        .connect(addr2)
+        .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
+      expect(rewardeeBalance.toString()).to.equal(claimAmount.sub(feeAmount));
+      expect(claims).to.equal(claimAmount);
+      expect(proofBalanceAfterClaim).to.equal(rewardAmount.sub(claimAmount));
+      await expect(
+        rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            claimAmount,
+            rewardAmount,
+            0,
+            feeAmount,
+            proof,
+            claimNonce,
+            sig.signature
+          )
+      ).to.be.revertedWithCustomError(
+        rewardPool,
+        'SignatureNonceHasAlreadyBeenUsed'
+      );
+    });
+
+    it('should revert if the nonce has been used before', async () => {
+      const { rewardPool, addr2, token, metaTxSender, addr2PrivKey } =
+        await loadFixture(deployInitialStateFixture);
+      const { rewardee, rewardAmount, proof } = await loadFixture(
+        deployClaimFixture
+      );
+      const feeAmount = ethers.utils.parseEther(String(1)).toString();
+      const claimNonce = Web3.utils.randomHex(32);
+      const claimAmount1 = ethers.utils.parseEther(String(3));
+      const claimAmount2 = ethers.utils.parseEther(String(4));
+      const sig1 = signMessage(
+        metaTxSender.address,
+        claimAmount1.toString(),
+        '0',
+        feeAmount,
+        claimNonce,
+        addr2PrivKey
+      );
+      expect(
+        await rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            claimAmount1,
+            rewardAmount,
+            0,
+            feeAmount,
+            proof,
+            claimNonce,
+            sig1.signature
+          )
+      )
+        .to.emit(rewardPool, 'Claimed')
+        .withArgs(rewardee, claimAmount1);
+
+      const rewardeeBalance = await token.balanceOf(rewardee);
+      const claims = await rewardPool.claims(rewardee);
+      const proofBalanceAfterClaim = await rewardPool
+        .connect(addr2)
+        .getRemainingAllocatedRewards(rewardee, rewardAmount, 0, proof);
+      expect(rewardeeBalance.toString()).to.equal(claimAmount1.sub(feeAmount));
+      expect(claims).to.equal(claimAmount1);
+      expect(proofBalanceAfterClaim).to.equal(rewardAmount.sub(claimAmount1));
+
+      const sig2 = signMessage(
+        metaTxSender.address,
+        claimAmount2.toString(),
+        '0',
+        feeAmount,
+        claimNonce,
+        addr2PrivKey
+      );
+      await expect(
+        rewardPool
+          .connect(metaTxSender)
+          .claimFor(
+            addr2.address,
+            claimAmount2,
+            rewardAmount,
+            0,
+            feeAmount,
+            proof,
+            claimNonce,
+            sig2.signature
+          )
+      ).to.be.revertedWithCustomError(
+        rewardPool,
+        'SignatureNonceHasAlreadyBeenUsed'
+      );
     });
   });
 
