@@ -203,38 +203,6 @@ contract RewardPool is
   }
 
   /**
-   * @notice Transfer rewards to a recipient.
-   * @dev Receives the amount and proof for a specific recipient defined by the address and transfers the rewards.
-   * The amount should be lower or equal to the available rewards to transfer.
-   * @param to The recipient's address
-   * @param amount The amount to transfer (in WEI)
-   * @param totalRewards The cumulative amount of rewards up to the point of the requested cycle
-   * @param _cycle The desired cycle for which to choose the root hash
-   * @param proof The _proof that enables the claim of the requested amount of tokens
-   * */
-  function transferRewards(
-    address to,
-    uint256 amount,
-    uint256 totalRewards,
-    uint256 _cycle,
-    bytes32[] calldata proof
-  ) external override onlyRole(DISTRIBUTOR_ROLE) whenNotPaused nonReentrant validDestination(to) returns (bool) {
-    if (totalRewards == 0) {
-      revert TotalRewardsAreZero();
-    }
-    if (amount == 0) {
-      revert AmountRequestedIsZero();
-    }
-    if (amount > _allocatedRewardsForProofMinusRewarded(to, totalRewards, _cycle, proof)) {
-      revert AmountIsOverAvailableRewardsToClaim();
-    }
-    claims[to] = claims[to].add(amount);
-    claimedRewards = claimedRewards.add(amount);
-    token.safeTransfer(to, amount);
-    return true;
-  }
-
-  /**
    * @notice Verify proof for the chosen root hash.
    * @param account The account of the recipient
    * @param amount The cumulative amount of tokens
