@@ -29,6 +29,8 @@ If we have not submitted a Merkle root for `n` then we can submit `n+1` Merkle r
 
 Claiming the rewards requires proof validation for the amount the user is eligible to claim along with some sanity checks. After the proof is verified and the sanity checks pass the claimed amount for the user is updated, the total claimed rewards are updated and the rewards are transferred to the user.
 
+Meta transaction claiming is also supported. The user must provide the transaction sender with a signature to allow him to send the transaction on behalf of the user. In this case the sender of the transaction can take a pre-agreed fee (must be signed by the user) from the claimed rewards for sending the transaction.
+
 ## Updating the reward claim period
 
 The `DISTRIBUTOR_ROLE` is able to update the wait period between the two steps of claiming. This will affect any claims in the process of requesting.

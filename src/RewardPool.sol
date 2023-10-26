@@ -252,6 +252,20 @@ contract RewardPool is
     emit Claimed(_msgSender(), amount);
   }
 
+  /**
+   * @notice Claim rewads on behalf of a user by providing a signature from them.
+   * @dev Anyone can claim rewards on behalf of a user by providing a signature from that user.
+   * The signature contains a fee field which the sender can take from the claime rewards for sending the transaction.
+   * The fee cannot me more than the rewards being claimed.
+   * @param rewardReceiver The address of the user that provided the signature and is claiming rewards
+   * @param amount The amount of rewards to be claimed
+   * @param totalRewards The total amount of rewards that have been allocated to the user in that cycle
+   * @param _cycle The cycle from which the user is claiming rewards
+   * @param claimForFee The fee that the transaction sender is taking
+   * @param proof The _proof that enables the claim of the requested amount of tokens.
+   * @param nonce The nonce used in the signature
+   * @param signature The signature from the user that is claiming the rewards
+   */
   function claimFor(
     address rewardReceiver,
     uint256 amount,
