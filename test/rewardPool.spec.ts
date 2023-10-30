@@ -1,10 +1,11 @@
 import { StandardMerkleTree } from '@openzeppelin/merkle-tree';
-import { ethers, upgrades, config } from 'hardhat';
+import { ethers, upgrades, config, hre } from 'hardhat';
 import { time, mine } from '@nomicfoundation/hardhat-network-helpers';
 import Web3 from 'web3';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
+import { ecsign, toBuffer } from 'ethereumjs-util';
 
 describe('RewardPool', () => {
   let rewards: [string, BigNumber][];
@@ -116,28 +117,52 @@ describe('RewardPool', () => {
     ];
   });
 
-  function signMessage(
+  function signMessageForClaim(
     sender: string,
     amount: string,
     cycle: string,
     fee: string,
     nonce: string,
-    privKey: string
+    privKey: string,
+    verifyingContract: string
   ) {
     const web3 = new Web3();
-    const hexAmount = Web3.utils
-      .padLeft(Web3.utils.numberToHex(amount), 64)
+    const name_msg = 'RewardPool'
+    const name = web3.utils.soliditySha3(name_msg)
+    const EIP712_DOMAIN_TYPE_MSG = "EIP712Domain(string name,uint256 chainId,address verifyingContract)"
+    const EIP712_DOMAIN_TYPE = web3.utils.soliditySha3(EIP712_DOMAIN_TYPE_MSG)
+    const messageType = "ClaimRewards(address sender,uint256 amount,uint256 cycle,uint256 fee,bytes32 nonce)";
+    const chainId = Web3.utils
+      .padLeft(Web3.utils.numberToHex(Number(hre.network.config.chainId)), 64)
       .slice(2);
-    const hexCycle = Web3.utils
-      .padLeft(Web3.utils.numberToHex(cycle), 64)
-      .slice(2);
+    const addressPadded = web3.utils.padLeft(verifyingContract, 64).slice(2)
+    const domainMessage = `${EIP712_DOMAIN_TYPE}${name?.slice(2)}${chainId}${addressPadded}`
+    // Create domain hash
+    const domainHash = web3.utils.soliditySha3(domainMessage);
+    // Create message type hash
+    const messageTypeHash = web3.utils.soliditySha3(messageType);
+
+    const hexAmount = Web3.utils.padLeft(Web3.utils.numberToHex(amount), 64).slice(2);
+    const hexCycle = Web3.utils.padLeft(Web3.utils.numberToHex(cycle), 64).slice(2);
     const hexFee = Web3.utils.padLeft(Web3.utils.numberToHex(fee), 64).slice(2);
-    const message = `${sender}${hexAmount}${hexCycle}${hexFee}${nonce.slice(
-      2
-    )}`;
+    const senderPadded = web3.utils.padLeft(sender, 64).slice(2)
+    const message = `${messageTypeHash}${senderPadded}${hexAmount}${hexCycle}${hexFee}${nonce.slice(2)}`;
+    // Create message hash
+
     const hashedMessage = web3.utils.soliditySha3(message);
 
-    return web3.eth.accounts.sign(hashedMessage!, privKey);
+    const messageToSign = `0x1901${domainHash?.slice(2)}${hashedMessage?.slice(2)}`;
+    // Create hash that will be signed
+
+    const hashToSign = web3.utils.soliditySha3(messageToSign);
+
+    console.log('file: rewardPool.spec.ts:169 -> hashToSign:', hashToSign)
+
+    const sig = ecsign(toBuffer(hashToSign), toBuffer(privKey));
+
+    const stringSig = `0x${sig.r.toString('hex')}${sig.s.toString('hex')}${sig.v.toString(16)}`
+    return stringSig
+
   }
 
   describe('submitMerkleRoot', () => {
@@ -1246,13 +1271,14 @@ describe('RewardPool', () => {
         deployClaimFixture
       );
       const claimNonce = Web3.utils.randomHex(32);
-      const sig = signMessage(
+      const sig = signMessageForClaim(
         metaTxSender.address,
         rewardAmount.toString(),
         '0',
         '0',
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       expect(
         await rewardPool
@@ -1265,7 +1291,7 @@ describe('RewardPool', () => {
             0,
             proof,
             claimNonce,
-            sig.signature
+            sig
           )
       )
         .to.emit(rewardPool, 'Claimed')
@@ -1302,13 +1328,14 @@ describe('RewardPool', () => {
         String(14_246 - 8)
       );
       const claimNonce = Web3.utils.randomHex(32);
-      const sig = signMessage(
+      const sig = signMessageForClaim(
         metaTxSender.address,
         withdrawalAmount.toString(),
         '0',
         '0',
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       await expect(
         await rewardPool
@@ -1321,7 +1348,7 @@ describe('RewardPool', () => {
             0,
             proof,
             claimNonce,
-            sig.signature
+            sig
           )
       )
         .to.emit(rewardPool, 'Claimed')
@@ -1349,13 +1376,14 @@ describe('RewardPool', () => {
       );
       const feeAmount = ethers.utils.parseEther(String(3)).toString();
       const claimNonce = Web3.utils.randomHex(32);
-      const sig = signMessage(
+      const sig = signMessageForClaim(
         metaTxSender.address,
         rewardAmount.toString(),
         '0',
         feeAmount,
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       expect(
         await rewardPool
@@ -1368,7 +1396,7 @@ describe('RewardPool', () => {
             feeAmount,
             proof,
             claimNonce,
-            sig.signature
+            sig
           )
       )
         .to.emit(rewardPool, 'Claimed')
@@ -1393,13 +1421,14 @@ describe('RewardPool', () => {
       {
         const claimNonce = Web3.utils.randomHex(32);
         const claimAmount = ethers.utils.parseEther(String(5)).toString();
-        const sig = signMessage(
+        const sig = signMessageForClaim(
           metaTxSender.address,
           claimAmount.toString(),
           '0',
           '0',
           claimNonce,
-          addr2PrivKey
+          addr2PrivKey,
+          rewardPool.address
         );
         expect(
           await rewardPool
@@ -1412,7 +1441,7 @@ describe('RewardPool', () => {
               0,
               proof,
               claimNonce,
-              sig.signature
+              sig
             )
         )
           .to.emit(rewardPool, 'Claimed')
@@ -1434,13 +1463,14 @@ describe('RewardPool', () => {
         const rewardeeBalanceBefore = await token.balanceOf(rewardee);
         const claimNonce = Web3.utils.randomHex(32);
         const claimAmount = ethers.utils.parseEther(String(4));
-        const sig = signMessage(
+        const sig = signMessageForClaim(
           metaTxSender.address,
           claimAmount.toString(),
           '0',
           '0',
           claimNonce,
-          addr2PrivKey
+          addr2PrivKey,
+          rewardPool.address
         );
         expect(
           await rewardPool
@@ -1453,7 +1483,7 @@ describe('RewardPool', () => {
               0,
               proof,
               claimNonce,
-              sig.signature
+              sig
             )
         )
           .to.emit(rewardPool, 'Claimed')
@@ -1484,13 +1514,14 @@ describe('RewardPool', () => {
       const claimNonce = Web3.utils.randomHex(32);
       const claimAmount = ethers.utils.parseEther(String(5)).toString();
       const rewardAmount = ethers.utils.parseEther(String(11));
-      const sig = signMessage(
+      const sig = signMessageForClaim(
         metaTxSender.address,
         claimAmount.toString(),
         '0',
         feeAmount,
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       await expect(
         rewardPool
@@ -1503,7 +1534,7 @@ describe('RewardPool', () => {
             feeAmount,
             proof,
             claimNonce,
-            sig.signature
+            sig
           )
       ).to.be.revertedWith('INVALID PROOF');
     });
@@ -1514,13 +1545,14 @@ describe('RewardPool', () => {
       const feeAmount = ethers.utils.parseEther(String(1)).toString();
       const claimNonce = Web3.utils.randomHex(32);
       const claimAmount = ethers.utils.parseEther(String(5)).toString();
-      const sig = signMessage(
+      const sig = signMessageForClaim(
         metaTxSender.address,
         claimAmount.toString(),
         '0',
         feeAmount,
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       await expect(
         rewardPool
@@ -1533,7 +1565,7 @@ describe('RewardPool', () => {
             feeAmount,
             proof7,
             claimNonce,
-            sig.signature
+            sig
           )
       ).to.be.revertedWith('INVALID PROOF');
     });
@@ -1545,13 +1577,14 @@ describe('RewardPool', () => {
       const feeAmount = ethers.utils.parseEther(String(1)).toString();
       const claimNonce = Web3.utils.randomHex(32);
       const claimAmount = '0';
-      const sig = signMessage(
+      const sig = signMessageForClaim(
         metaTxSender.address,
         claimAmount.toString(),
         '0',
         feeAmount,
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       await expect(
         rewardPool
@@ -1564,7 +1597,7 @@ describe('RewardPool', () => {
             feeAmount,
             proof,
             claimNonce,
-            sig.signature
+            sig
           )
       ).to.be.revertedWithCustomError(rewardPool, 'AmountRequestedIsZero');
     });
@@ -1605,13 +1638,14 @@ describe('RewardPool', () => {
         );
       {
         const claimNonce = Web3.utils.randomHex(32);
-        const sig = signMessage(
+        const sig = signMessageForClaim(
           metaTxSender.address,
           rewardAmount.toString(),
           '0',
           '0',
           claimNonce,
-          addr2PrivKey
+          addr2PrivKey,
+          rewardPool.address
         );
         expect(
           await rewardPool
@@ -1624,7 +1658,7 @@ describe('RewardPool', () => {
               0,
               proof,
               claimNonce,
-              sig.signature
+              sig
             )
         )
           .to.emit(rewardPool, 'Claimed')
@@ -1644,13 +1678,14 @@ describe('RewardPool', () => {
 
       {
         const claimNonce = Web3.utils.randomHex(32);
-        const sig = signMessage(
+        const sig = signMessageForClaim(
           metaTxSender.address,
           ethers.utils.parseEther(String(10)).toString(),
           '1',
           '0',
           claimNonce,
-          addr2PrivKey
+          addr2PrivKey,
+          rewardPool.address
         );
         expect(
           await rewardPool
@@ -1663,7 +1698,7 @@ describe('RewardPool', () => {
               0,
               updatedProof,
               claimNonce,
-              sig.signature
+              sig
             )
         )
           .to.emit(rewardPool, 'Claimed')
@@ -1695,13 +1730,14 @@ describe('RewardPool', () => {
       const wrongFeeAmount = ethers.utils.parseEther(String(2)).toString();
       const claimNonce = Web3.utils.randomHex(32);
       const claimAmount = ethers.utils.parseEther(String(3));
-      const sig = signMessage(
+      const sig = signMessageForClaim(
         metaTxSender.address,
         claimAmount.toString(),
         '0',
         feeAmount,
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       await rewardPool.pause();
       await expect(
@@ -1715,7 +1751,7 @@ describe('RewardPool', () => {
             wrongFeeAmount,
             proof,
             claimNonce,
-            sig.signature
+            sig
           )
       ).to.be.revertedWith('Pausable: paused');
     });
@@ -1728,13 +1764,14 @@ describe('RewardPool', () => {
       const wrongFeeAmount = ethers.utils.parseEther(String(2)).toString();
       const claimNonce = Web3.utils.randomHex(32);
       const claimAmount = ethers.utils.parseEther(String(3));
-      const sig = signMessage(
+      const sig = signMessageForClaim(
         metaTxSender.address,
         claimAmount.toString(),
         '0',
         feeAmount,
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       await expect(
         rewardPool
@@ -1747,7 +1784,7 @@ describe('RewardPool', () => {
             wrongFeeAmount,
             proof,
             claimNonce,
-            sig.signature
+            sig
           )
       ).to.be.revertedWithCustomError(rewardPool, 'InvalidSignature');
     });
@@ -1761,13 +1798,14 @@ describe('RewardPool', () => {
       const feeAmount = ethers.utils.parseEther(String(1)).toString();
       const claimNonce = Web3.utils.randomHex(32);
       const claimAmount = ethers.utils.parseEther(String(3));
-      const sig = signMessage(
+      const sig = signMessageForClaim(
         metaTxSender.address,
         claimAmount.toString(),
         '0',
         feeAmount,
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       expect(
         await rewardPool
@@ -1780,7 +1818,7 @@ describe('RewardPool', () => {
             feeAmount,
             proof,
             claimNonce,
-            sig.signature
+            sig
           )
       )
         .to.emit(rewardPool, 'Claimed')
@@ -1805,7 +1843,7 @@ describe('RewardPool', () => {
             feeAmount,
             proof,
             claimNonce,
-            sig.signature
+            sig
           )
       ).to.be.revertedWithCustomError(
         rewardPool,
@@ -1823,13 +1861,14 @@ describe('RewardPool', () => {
       const claimNonce = Web3.utils.randomHex(32);
       const claimAmount1 = ethers.utils.parseEther(String(3));
       const claimAmount2 = ethers.utils.parseEther(String(4));
-      const sig1 = signMessage(
+      const sig1 = signMessageForClaim(
         metaTxSender.address,
         claimAmount1.toString(),
         '0',
         feeAmount,
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       expect(
         await rewardPool
@@ -1842,7 +1881,7 @@ describe('RewardPool', () => {
             feeAmount,
             proof,
             claimNonce,
-            sig1.signature
+            sig1
           )
       )
         .to.emit(rewardPool, 'Claimed')
@@ -1857,13 +1896,14 @@ describe('RewardPool', () => {
       expect(claims).to.equal(claimAmount1);
       expect(proofBalanceAfterClaim).to.equal(rewardAmount.sub(claimAmount1));
 
-      const sig2 = signMessage(
+      const sig2 = signMessageForClaim(
         metaTxSender.address,
         claimAmount2.toString(),
         '0',
         feeAmount,
         claimNonce,
-        addr2PrivKey
+        addr2PrivKey,
+        rewardPool.address
       );
       await expect(
         rewardPool
@@ -1876,7 +1916,7 @@ describe('RewardPool', () => {
             feeAmount,
             proof,
             claimNonce,
-            sig2.signature
+            sig2
           )
       ).to.be.revertedWithCustomError(
         rewardPool,

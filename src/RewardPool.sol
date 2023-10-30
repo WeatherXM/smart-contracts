@@ -308,9 +308,37 @@ contract RewardPool is
     if (nonces[nonce]) {
       revert SignatureNonceHasAlreadyBeenUsed();
     }
+    bytes32 DOMAIN_SEPARATOR;
+    string memory MESSAGE_TYPE = "ClaimRewards(address sender,uint256 amount,uint256 cycle,uint256 fee,bytes32 nonce)";
 
-    bytes32 signedHash = keccak256(abi.encodePacked(txSender, amount, _cycle, claimForFee, nonce))
-      .toEthSignedMessageHash();
+    {
+      string memory name = "RewardPool";
+      address verifyingContract = address(this);
+
+      uint256 chainId;
+      assembly {
+        chainId := chainid()
+      }
+      string memory EIP712_DOMAIN_TYPE = "EIP712Domain(string name,uint256 chainId,address verifyingContract)";
+
+      DOMAIN_SEPARATOR = keccak256(
+        abi.encode(
+          keccak256(abi.encodePacked(EIP712_DOMAIN_TYPE)),
+          keccak256(abi.encodePacked(name)),
+          chainId,
+          verifyingContract
+        )
+      );
+    }
+
+    bytes32 signedHash = keccak256(
+      abi.encodePacked(
+        "\x19\x01", // backslash is needed to escape the character
+        DOMAIN_SEPARATOR,
+        keccak256(abi.encode(keccak256(abi.encodePacked(MESSAGE_TYPE)), txSender, amount, _cycle, claimForFee, nonce))
+      )
+    );
+
     address signer = signedHash.recover(signature);
 
     if (signer != rewardReceiver) {
