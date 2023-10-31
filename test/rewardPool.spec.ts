@@ -1,5 +1,5 @@
 import { StandardMerkleTree } from '@openzeppelin/merkle-tree';
-import { ethers, upgrades, config, hre } from 'hardhat';
+import { ethers, upgrades, config, network } from 'hardhat';
 import { time, mine } from '@nomicfoundation/hardhat-network-helpers';
 import Web3 from 'web3';
 import { expect } from 'chai';
@@ -127,42 +127,55 @@ describe('RewardPool', () => {
     verifyingContract: string
   ) {
     const web3 = new Web3();
-    const name_msg = 'RewardPool'
-    const name = web3.utils.soliditySha3(name_msg)
-    const EIP712_DOMAIN_TYPE_MSG = "EIP712Domain(string name,uint256 chainId,address verifyingContract)"
-    const EIP712_DOMAIN_TYPE = web3.utils.soliditySha3(EIP712_DOMAIN_TYPE_MSG)
-    const messageType = "ClaimRewards(address sender,uint256 amount,uint256 cycle,uint256 fee,bytes32 nonce)";
+    const name_msg = 'RewardPool';
+    const name = web3.utils.soliditySha3(name_msg);
+    const EIP712_DOMAIN_TYPE_MSG =
+      'EIP712Domain(string name,uint256 chainId,address verifyingContract)';
+    const EIP712_DOMAIN_TYPE = web3.utils.soliditySha3(EIP712_DOMAIN_TYPE_MSG);
+    const messageType =
+      'ClaimRewards(address sender,uint256 amount,uint256 cycle,uint256 fee,bytes32 nonce)';
     const chainId = Web3.utils
-      .padLeft(Web3.utils.numberToHex(Number(hre.network.config.chainId)), 64)
+      .padLeft(Web3.utils.numberToHex(Number(network.config.chainId)), 64)
       .slice(2);
-    const addressPadded = web3.utils.padLeft(verifyingContract, 64).slice(2)
-    const domainMessage = `${EIP712_DOMAIN_TYPE}${name?.slice(2)}${chainId}${addressPadded}`
+    const addressPadded = web3.utils.padLeft(verifyingContract, 64).slice(2);
+    const domainMessage = `${EIP712_DOMAIN_TYPE}${name?.slice(
+      2
+    )}${chainId}${addressPadded}`;
     // Create domain hash
     const domainHash = web3.utils.soliditySha3(domainMessage);
     // Create message type hash
     const messageTypeHash = web3.utils.soliditySha3(messageType);
 
-    const hexAmount = Web3.utils.padLeft(Web3.utils.numberToHex(amount), 64).slice(2);
-    const hexCycle = Web3.utils.padLeft(Web3.utils.numberToHex(cycle), 64).slice(2);
+    const hexAmount = Web3.utils
+      .padLeft(Web3.utils.numberToHex(amount), 64)
+      .slice(2);
+    const hexCycle = Web3.utils
+      .padLeft(Web3.utils.numberToHex(cycle), 64)
+      .slice(2);
     const hexFee = Web3.utils.padLeft(Web3.utils.numberToHex(fee), 64).slice(2);
-    const senderPadded = web3.utils.padLeft(sender, 64).slice(2)
-    const message = `${messageTypeHash}${senderPadded}${hexAmount}${hexCycle}${hexFee}${nonce.slice(2)}`;
+    const senderPadded = web3.utils.padLeft(sender, 64).slice(2);
+    const message = `${messageTypeHash}${senderPadded}${hexAmount}${hexCycle}${hexFee}${nonce.slice(
+      2
+    )}`;
     // Create message hash
 
     const hashedMessage = web3.utils.soliditySha3(message);
 
-    const messageToSign = `0x1901${domainHash?.slice(2)}${hashedMessage?.slice(2)}`;
+    const messageToSign = `0x1901${domainHash?.slice(2)}${hashedMessage?.slice(
+      2
+    )}`;
     // Create hash that will be signed
 
     const hashToSign = web3.utils.soliditySha3(messageToSign);
 
-    console.log('file: rewardPool.spec.ts:169 -> hashToSign:', hashToSign)
+    console.log('file: rewardPool.spec.ts:169 -> hashToSign:', hashToSign);
 
     const sig = ecsign(toBuffer(hashToSign), toBuffer(privKey));
 
-    const stringSig = `0x${sig.r.toString('hex')}${sig.s.toString('hex')}${sig.v.toString(16)}`
-    return stringSig
-
+    const stringSig = `0x${sig.r.toString('hex')}${sig.s.toString(
+      'hex'
+    )}${sig.v.toString(16)}`;
+    return stringSig;
   }
 
   describe('submitMerkleRoot', () => {
@@ -313,9 +326,13 @@ describe('RewardPool', () => {
       // Total rewards are 5000. 4000 from the vault and 1000 from the boost treasury
       await rewardPool
         .connect(distributor)
-        .submitMerkleRoot(root1, ethers.utils.parseEther('4000'), ethers.utils.parseEther('1000'));
-      const poolBalanceAfter = await token.balanceOf(rewardPool.address)
-      const treasuryBalanceAfter = await token.balanceOf(treasury.address)
+        .submitMerkleRoot(
+          root1,
+          ethers.utils.parseEther('4000'),
+          ethers.utils.parseEther('1000')
+        );
+      const poolBalanceAfter = await token.balanceOf(rewardPool.address);
+      const treasuryBalanceAfter = await token.balanceOf(treasury.address);
 
       expect(poolBalanceBefore).to.equal('0');
       // Pool balance is 5_000 which is the total rewards
