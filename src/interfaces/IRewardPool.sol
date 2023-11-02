@@ -14,6 +14,8 @@ interface IRewardPool {
   error TargetAddressIsZero();
   error TargetAddressIsContractAddress();
   error TotalRewardsExceedEmissionFromVault();
+  error SignatureNonceHasAlreadyBeenUsed();
+  error InvalidSignature();
 
   /**
    * @dev Emitted when root hash is submitted
@@ -44,15 +46,6 @@ interface IRewardPool {
 
   //root hash submission
   function submitMerkleRoot(bytes32 root, uint256 totalRewards, uint256 boostRewards) external returns (bool);
-
-  // transfer functions
-  function transferRewards(
-    address to,
-    uint256 amount,
-    uint256 totalRewards,
-    uint256 cycle,
-    bytes32[] calldata proof
-  ) external returns (bool);
 
   function claim(uint256 _amount, uint256 _totalRewards, uint256 _cycle, bytes32[] calldata proof) external;
 

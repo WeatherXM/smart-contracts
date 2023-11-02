@@ -12,6 +12,7 @@ import { IERC20Upgradeable } from "lib/openzeppelin-contracts-upgradeable/contra
 import { AccessControlEnumerableUpgradeable } from "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlEnumerableUpgradeable.sol";
 import { IRewardPool } from "./interfaces/IRewardPool.sol";
 import { IRewardsVault } from "./interfaces/IRewardsVault.sol";
+import { ECDSA } from "lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 
 /**
  * @title RewardPool contract.
@@ -29,6 +30,7 @@ contract RewardPool is
   PausableUpgradeable
 {
   using SafeERC20Upgradeable for IERC20Upgradeable;
+  using ECDSA for bytes32;
 
   /* ========== LIBRARIES ========== */
   using SafeMath for uint256;
@@ -38,6 +40,7 @@ contract RewardPool is
   IERC20Upgradeable public token;
   mapping(address => uint256) public claims;
   mapping(uint256 => bytes32) public roots;
+  mapping(bytes32 => bool) public nonces;
 
   uint256 public cycle;
   uint256 public lastRewardRootTs;
@@ -199,38 +202,6 @@ contract RewardPool is
   }
 
   /**
-   * @notice Transfer rewards to a recipient.
-   * @dev Receives the amount and proof for a specific recipient defined by the address and transfers the rewards.
-   * The amount should be lower or equal to the available rewards to transfer.
-   * @param to The recipient's address
-   * @param amount The amount to transfer (in WEI)
-   * @param totalRewards The cumulative amount of rewards up to the point of the requested cycle
-   * @param _cycle The desired cycle for which to choose the root hash
-   * @param proof The _proof that enables the claim of the requested amount of tokens
-   * */
-  function transferRewards(
-    address to,
-    uint256 amount,
-    uint256 totalRewards,
-    uint256 _cycle,
-    bytes32[] calldata proof
-  ) external override onlyRole(DISTRIBUTOR_ROLE) whenNotPaused nonReentrant validDestination(to) returns (bool) {
-    if (totalRewards == 0) {
-      revert TotalRewardsAreZero();
-    }
-    if (amount == 0) {
-      revert AmountRequestedIsZero();
-    }
-    if (amount > _allocatedRewardsForProofMinusRewarded(to, totalRewards, _cycle, proof)) {
-      revert AmountIsOverAvailableRewardsToClaim();
-    }
-    claims[to] = claims[to].add(amount);
-    claimedRewards = claimedRewards.add(amount);
-    token.safeTransfer(to, amount);
-    return true;
-  }
-
-  /**
    * @notice Verify proof for the chosen root hash.
    * @param account The account of the recipient
    * @param amount The cumulative amount of tokens
@@ -278,6 +249,103 @@ contract RewardPool is
     token.safeTransfer(_msgSender(), amount);
 
     emit Claimed(_msgSender(), amount);
+  }
+
+  /**
+   * @notice Claim rewads on behalf of a user by providing a signature from them.
+   * @dev Anyone can claim rewards on behalf of a user by providing a signature from that user.
+   * The signature contains a fee field which the sender can take from the claime rewards for sending the transaction.
+   * The fee cannot me more than the rewards being claimed.
+   * @param rewardReceiver The address of the user that provided the signature and is claiming rewards
+   * @param amount The amount of rewards to be claimed
+   * @param totalRewards The total amount of rewards that have been allocated to the user in that cycle
+   * @param _cycle The cycle from which the user is claiming rewards
+   * @param claimForFee The fee that the transaction sender is taking
+   * @param proof The _proof that enables the claim of the requested amount of tokens.
+   * @param nonce The nonce used in the signature
+   * @param signature The signature from the user that is claiming the rewards
+   */
+  function claimFor(
+    address rewardReceiver,
+    uint256 amount,
+    uint256 totalRewards,
+    uint256 _cycle,
+    uint256 claimForFee,
+    bytes32[] calldata proof,
+    bytes32 nonce,
+    bytes calldata signature
+  ) external whenNotPaused nonReentrant {
+    _verifySignatureForClaimFor(_msgSender(), rewardReceiver, amount, _cycle, claimForFee, nonce, signature);
+    if (totalRewards == 0) {
+      revert TotalRewardsAreZero();
+    }
+    if (amount == 0) {
+      revert AmountRequestedIsZero();
+    }
+    if (amount > _allocatedRewardsForProofMinusRewarded(rewardReceiver, totalRewards, _cycle, proof)) {
+      revert AmountIsOverAvailableRewardsToClaim();
+    }
+
+    claims[rewardReceiver] = claims[rewardReceiver].add(amount);
+    claimedRewards = claimedRewards.add(amount);
+    // The user that is claiming gets the claimed amount minus the fee
+    token.safeTransfer(rewardReceiver, amount - claimForFee);
+    // The sender of the meta transaction gets the fee
+    token.safeTransfer(_msgSender(), claimForFee);
+
+    emit Claimed(rewardReceiver, amount);
+  }
+
+  function _verifySignatureForClaimFor(
+    address txSender,
+    address rewardReceiver,
+    uint256 amount,
+    uint256 _cycle,
+    uint256 claimForFee,
+    bytes32 nonce,
+    bytes calldata signature
+  ) internal {
+    if (nonces[nonce]) {
+      revert SignatureNonceHasAlreadyBeenUsed();
+    }
+    bytes32 DOMAIN_SEPARATOR;
+    string memory MESSAGE_TYPE = "ClaimRewards(address sender,uint256 amount,uint256 cycle,uint256 fee,bytes32 nonce)";
+
+    {
+      string memory name = "RewardPool";
+      address verifyingContract = address(this);
+
+      uint256 chainId;
+      assembly {
+        chainId := chainid()
+      }
+      string memory EIP712_DOMAIN_TYPE = "EIP712Domain(string name,uint256 chainId,address verifyingContract)";
+
+      DOMAIN_SEPARATOR = keccak256(
+        abi.encode(
+          keccak256(abi.encodePacked(EIP712_DOMAIN_TYPE)),
+          keccak256(abi.encodePacked(name)),
+          chainId,
+          verifyingContract
+        )
+      );
+    }
+
+    bytes32 signedHash = keccak256(
+      abi.encodePacked(
+        "\x19\x01", // backslash is needed to escape the character
+        DOMAIN_SEPARATOR,
+        keccak256(abi.encode(keccak256(abi.encodePacked(MESSAGE_TYPE)), txSender, amount, _cycle, claimForFee, nonce))
+      )
+    );
+
+    address signer = signedHash.recover(signature);
+
+    if (signer != rewardReceiver) {
+      revert InvalidSignature();
+    }
+
+    nonces[nonce] = true;
   }
 
   function pause() public onlyRole(DEFAULT_ADMIN_ROLE) {
