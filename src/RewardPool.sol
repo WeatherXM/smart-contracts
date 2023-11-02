@@ -126,12 +126,12 @@ contract RewardPool is
    * The root hashes are stored in a mapping where the cycle is the accessor.
    * For every cycle there is only one root hash.
    * @param root The root hash containing the cumulative rewards plus the daily rewards.
-   * @param totalRewards The total rewads being allocation with this merkle root. This must also include the boostRewards
+   * @param baseRewards The rewards being allocated based on the daily emissions. Not including any rewards coming from boosts
    * @param boostRewards The amount of rewards that are being allocated as part of a boost.
    * */
   function submitMerkleRoot(
     bytes32 root,
-    uint256 totalRewards,
+    uint256 baseRewards,
     uint256 boostRewards
   ) external override onlyRole(DISTRIBUTOR_ROLE) rateLimit whenNotPaused returns (bool) {
     uint256 activeCycle = cycle;
@@ -141,14 +141,13 @@ contract RewardPool is
     rewardsVault.pullDailyEmissions();
     uint256 balanceAfter = token.balanceOf(address(this));
     uint256 delta = balanceAfter - balanceBefore;
-    uint256 vaultRewards = totalRewards - boostRewards;
 
     // The rewards vault will always send as much as it has up to the daily emissions amount.
     // If are distributing less than the daily emission send the change to the treasury.
     // The boost is coming from a different pool so it doesnt count again the change
-    if (delta > vaultRewards) {
-      token.safeTransfer(rewardsChangeTreasury, delta - vaultRewards);
-    } else if (delta < vaultRewards) {
+    if (delta > baseRewards) {
+      token.safeTransfer(rewardsChangeTreasury, delta - baseRewards);
+    } else if (delta < baseRewards) {
       revert TotalRewardsExceedEmissionFromVault();
     }
 
@@ -309,9 +308,37 @@ contract RewardPool is
     if (nonces[nonce]) {
       revert SignatureNonceHasAlreadyBeenUsed();
     }
+    bytes32 DOMAIN_SEPARATOR;
+    string memory MESSAGE_TYPE = "ClaimRewards(address sender,uint256 amount,uint256 cycle,uint256 fee,bytes32 nonce)";
 
-    bytes32 signedHash = keccak256(abi.encodePacked(txSender, amount, _cycle, claimForFee, nonce))
-      .toEthSignedMessageHash();
+    {
+      string memory name = "RewardPool";
+      address verifyingContract = address(this);
+
+      uint256 chainId;
+      assembly {
+        chainId := chainid()
+      }
+      string memory EIP712_DOMAIN_TYPE = "EIP712Domain(string name,uint256 chainId,address verifyingContract)";
+
+      DOMAIN_SEPARATOR = keccak256(
+        abi.encode(
+          keccak256(abi.encodePacked(EIP712_DOMAIN_TYPE)),
+          keccak256(abi.encodePacked(name)),
+          chainId,
+          verifyingContract
+        )
+      );
+    }
+
+    bytes32 signedHash = keccak256(
+      abi.encodePacked(
+        "\x19\x01", // backslash is needed to escape the character
+        DOMAIN_SEPARATOR,
+        keccak256(abi.encode(keccak256(abi.encodePacked(MESSAGE_TYPE)), txSender, amount, _cycle, claimForFee, nonce))
+      )
+    );
+
     address signer = signedHash.recover(signature);
 
     if (signer != rewardReceiver) {
