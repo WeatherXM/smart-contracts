@@ -9,4 +9,4 @@ module.exports = async ({ deployments }) => {
 	});
 };
 
-module.exports.tags = ["token_eth"];
+module.exports.tags = ["token"];

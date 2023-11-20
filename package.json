@@ -25,7 +25,13 @@
 		"generate:testing-data": "npx ts-node test/foundry/scripts/encode.ts",
 		"class:diagram": "npx sol2uml -sc deeppink -tc white -fc dimgrey -bc black ./src -o classDiagram.svg",
 		"flatten:rewardpool": "forge flatten ./src/RewardPool.sol -o ./src/RewardPool_flattened.sol",
-		"storage:diagram:rewardpool": "npx sol2uml storage -c RewardPool ./src/RewardPool_flattened.sol"
+		"storage:diagram:rewardpool": "npx sol2uml storage -c RewardPool ./src/RewardPool_flattened.sol",
+		"deploy:eth:mainnet": "npx hardhat deploy --tags token --network mainnet",
+		"deploy:eth:goerli": "npx hardhat deploy --tags token --network goerli",
+		"deploy:arbitrum:mainnet": "npx hardhat deploy --tags rewarding --network arbitrum",
+		"deploy:arbitrum:goerli": "npx hardhat deploy --tags rewarding --network arbitrumGoerli",
+		"deploy:token:hardhat": "npx hardhat deploy --tags token --network hardhat",
+		"deploy:rewarding:hardhat": "npx hardhat deploy --tags rewarding --network hardhat"
 	},
 	"repository": {
 		"type": "git",

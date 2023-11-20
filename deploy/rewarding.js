@@ -1,5 +1,5 @@
-const { ethers, upgrades } = require("hardhat");
-const { abi } = require("../deployments/goerli/WeatherXM.json");
+const { ethers, upgrades } = require('hardhat')
+const { abi } = require('../artifacts/src/WeatherXM.sol/WeatherXM.json')
 
 const DAILY_REWARDS_CHANGE_TREASURY = "";
 const REWARDS_AMOUNT = "50000000";
@@ -67,4 +67,4 @@ module.exports = async ({ deployments }) => {
 	/** ========================================== **/
 };
 
-module.exports.tags = ["rewarding_arb"];
+module.exports.tags = ["rewarding"];
