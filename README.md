@@ -42,17 +42,3 @@ As more logic is transferred into smart contracts, a need for grouping of functi
 ### Merkle Tree and Claiming Rewards
 
 You may find more info about the implementation of Merkle Tree and the procedure which enables claiming of rewards in the [Merkle Tree](./docs/merkle_tree.md).
-
-### Supply-And-Demand Equilibrium
-
-The $WXM token is designed to distribute the value accrued by the commercial use of WeatherXM data to the Network participants. In other words, there is supply (new issuance) and demand (token used to purchase services due to commercial uses of the Network’s data which are put back in the rewards pool) for $WXM, and eventually, an equilibrium point is reached.
-
-The only case in which issuance of new tokens can stop is if the maximum supply of 100 million tokens is reached (expected to happen in more than 10 years) and there is zero demand for Network data (i.e. token burns), or if the DAO, which will be in place by then, decides to change the token issuance policy.
-
-#### Purchasing services
-
-Tokens that are used to purchase services are sent back into the rewards pool and remain locked there to be claimed by users during the daily rewards allocation. Services are also purchasable using stablecoins which will then be used for WXM buy-back (schedule for buyback will be done in a transparent way and be controlled by the DAO) that will end up in the rewards pool.
-
-#### Putting tokens back into circulation
-
-Tokens will be put into circulation based on the emissions described in the tokenomics section of the [Whitepaper](https://weatherxm.com/token/)
